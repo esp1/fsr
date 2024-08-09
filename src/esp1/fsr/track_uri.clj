@@ -1,4 +1,4 @@
-(ns esp1.tessera.track-uri
+(ns esp1.fsr.track-uri
   (:require [taoensso.telemere :as t]))
 
 (def ^:dynamic tracked-uris-atom

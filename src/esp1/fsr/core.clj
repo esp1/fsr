@@ -1,8 +1,8 @@
-(ns esp1.tessera.core
+(ns esp1.fsr.core
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.string :as string]
-            [esp1.tessera.schema :refer [file?]]))
+            [esp1.fsr.schema :refer [file?]]))
 
 (defn file-ns-name-components
   "If this file is part of a clojure namespace,

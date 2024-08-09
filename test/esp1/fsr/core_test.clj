@@ -1,7 +1,7 @@
-(ns esp1.tessera.core-test
+(ns esp1.fsr.core-test
   (:require [clojure.java.io :as io]
             [clojure.test :refer [deftest is]]
-            [esp1.tessera.core :refer [file->clj uri->file+params]]))
+            [esp1.fsr.core :refer [file->clj uri->file+params]]))
 
 (deftest non-clj-file
   (is (= [(io/file "test/bar/test.txt") {}]

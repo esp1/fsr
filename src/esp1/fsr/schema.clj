@@ -1,4 +1,4 @@
-(ns esp1.tessera.schema
+(ns esp1.fsr.schema
   (:import [java.io File]))
 
 (def file?
