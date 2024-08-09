@@ -9,19 +9,16 @@
 
 (defn uri->endpoint-fn
   [method uri root-fs-prefix]
-  (let [[f path-params]
-        (uri->file+params uri (io/file root-fs-prefix))
-
-        endpoint-meta
-        (-> f
-            file->clj
-            clj->ns-sym
-            (ns-endpoint-meta (get-root-ns-prefix root-fs-prefix)))]
-    (when-let [http-fn (http-endpoint-fn method endpoint-meta)]
-      (fn [request]
-        (http-fn (merge request
-                        (-> endpoint-meta
-                            (assoc :endpoint/path-params path-params))))))))
+  (when-let [[f path-params] (uri->file+params uri (io/file root-fs-prefix))]
+    (let [endpoint-meta (-> f
+                            file->clj
+                            clj->ns-sym
+                            (ns-endpoint-meta (get-root-ns-prefix root-fs-prefix)))]
+      (when-let [http-fn (http-endpoint-fn method endpoint-meta)]
+        (fn [request]
+          (http-fn (merge request
+                          (-> endpoint-meta
+                              (assoc :endpoint/path-params path-params)))))))))
 
 (defn wrap-fs-router
   [handler root-fs-prefix]
