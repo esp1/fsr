@@ -1,0 +1,6 @@
+{:deps {org.clojure/clojure {:mvn/version "1.11.3"}
+        com.taoensso/telemere {:mvn/version "1.0.0-beta14"}}
+ :aliases {:dev {:extra-paths ["test"]
+                 :extra-deps {metosin/malli {:mvn/version "0.16.2"}
+                              org.slf4j/slf4j-simple {:mvn/version "2.0.13"}}}
+           :publish {:exec-fn esp1.static/build}}}

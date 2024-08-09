@@ -1,0 +1,9 @@
+/.calva/
+/.clj-kondo/.cache/
+/.devbox/
+/.lsp/
+/.portal/
+
+.cpcache/
+.nrepl-port
+.DS_Store

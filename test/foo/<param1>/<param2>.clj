@@ -1,0 +1,1 @@
+(ns foo.<param1>.<param2>)
