@@ -28,7 +28,7 @@
       ;; use endpoint-fn to generate content
       (let [response (endpoint-fn request)]
         (cond
-          ;; if response is a string, treat it as an html 200 response
+          ;; if response is a string, treat it as an HTML response
           (string? response)
           {:status 200
            :headers {"Content-Type" "text/html"}
@@ -37,6 +37,10 @@
           ;; if response is a map, use it as the response map
           (map? response)
           response
+
+          ;; if response is nil, send HTTP 204 No Content response
+          (nil? response)
+          {:status 204}
 
           :else
           (throw (Exception. "Invalid response type. Endpoint function should return a string or a response map."))))
