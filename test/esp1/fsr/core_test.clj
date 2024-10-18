@@ -25,3 +25,9 @@
          (uri->file+params "nope/nuhuh" (io/file "not/here"))))
   (is (= nil
          (file->clj (io/file "not/here")))))
+
+(deftest step-match
+  (is (= [nil (io/file "test/baz/<<arg>>.clj") {:arg "blah"}]
+         (#'esp1.fsr.core/step-match "blah" (io/file "test/baz"))))
+  (is (thrown? Exception
+               (#'esp1.fsr.core/step-match "blah" (io/file "test/bad")))))

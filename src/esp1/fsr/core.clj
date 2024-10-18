@@ -73,7 +73,23 @@
     (cond
       (empty? match-infos) nil
       (= 1 (count match-infos)) (first match-infos)
-      (< 1 (count match-infos)) (throw (Exception. (str "URI '" uri "' has multiple matches in " (.getPath cwd) ": " (pr-str match-infos)))))))
+      (> (count match-infos) 1) (let [[file-match-infos dir-match-infos]
+                                      (partition-by (fn [[_ f _]]
+                                                      (.isFile f))
+                                                    match-infos)]
+                                  (if (and
+                                       ;; if there is only one file match
+                                       (= 1 (count file-match-infos))
+                                       ;; and none of the directory matches contain an index.clj
+                                       (empty? (filter (fn [[_ f _]]
+                                                         (.exists (io/file f "index.clj")))
+                                                       dir-match-infos)))
+                                    
+                                    ;; then return the file match-info
+                                    (first file-match-infos)
+
+                                    ;; otherwise throw an exception
+                                    (throw (Exception. (str "URI '" uri "' has multiple matches in " (.getPath cwd) ": " (pr-str match-infos)))))))))
 
 (defn uri->file+params
   "Resolves the given URI to a filesystem file or dir in the given current working directory.

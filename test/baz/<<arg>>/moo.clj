@@ -1,0 +1,1 @@
+(ns baz.<<arg>>.moo)
