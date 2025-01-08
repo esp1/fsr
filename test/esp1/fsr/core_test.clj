@@ -16,7 +16,7 @@
          (file->clj (io/file "test/bar/abc_<param1>_def_<<param2>>_xyz.clj"))))
   
   (is (= [(io/file "test/bar/2024_01_02_Some_Thing") {}]
-         (uri->file+params "bar/2024-01-02_Some_Thing" (io/file "test"))))
+         (uri->file+params "bar/2024-01-02-Some-Thing" (io/file "test"))))
   (is (= (io/file "test/bar/2024_01_02_Some_Thing/index.clj")
          (file->clj (io/file "test/bar/2024_01_02_Some_Thing")))))
 
