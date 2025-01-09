@@ -1,0 +1,14 @@
+{
+  "calva.replConnectSequences": [
+    {
+      "name": "repl",
+      "projectType": "deps.edn",
+      "autoSelectForJackIn": true,
+      "autoSelectForConnect": true,
+      "projectRootPath": ["."],
+      "menuSelections": {
+        "cljAliases": ["dev"],
+      },
+    }
+  ]
+}
