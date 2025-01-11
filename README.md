@@ -92,14 +92,14 @@ Hander functions are called with a [Ring request map](https://github.com/ring-cl
 ## Handler Responses
 Handler functions are expected to return a [Ring response map](https://github.com/ring-clojure/ring/wiki/Concepts#responses).
 
-For convenience fsr also allows handler functions to return a string response, in which case fsr will use that string as the `:body` value in a HTTP 200 Ok Ring response:
+For convenience fsr also allows handler functions to return a string response, in which case fsr will use that string as the `:body` value in a `HTTP 200 Ok` Ring response:
 ```
 {:status 200
  :headers {"Content-Type" "text/html"}
  :body response}
 ```
 
-Also for convenience if a handler function returns `nil`, fsr will translate that into a HTTP 204 No Content Ring response:
+Also for convenience if a handler function returns `nil`, fsr will translate that into a `HTTP 204 No Content` Ring response:
 ```
 {:status 204}
 ```
