@@ -24,7 +24,7 @@
    Known URIs are either non-parameterized URIs, or URIs tracked with `esp1.fsr.track-uri/track-uri` and collected in `esp1.fsr.track-uri/tracked-uris-atom`."
   [root-fs-prefix publish-dir]
   {:pre [(and root-fs-prefix publish-dir)]}
-  (binding [tracked-uris-atom (atom [])]
+  (binding [tracked-uris-atom (atom #{})]
     (let [ns-syms (endpoint-ns-syms root-fs-prefix)
           uris (map #(ns-sym->uri % (get-root-ns-prefix root-fs-prefix)) ns-syms)]
       ;; Generate non-parameterized endpoints (& collect tracked URIs in the process)
