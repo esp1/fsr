@@ -6,7 +6,8 @@
   nil)
 
 (defn track-uri
-  "Adds URI to `tracked-uris-atom` if it exists."
+  "Adds URI to `tracked-uris-atom` if it exists.
+   Returns the unchanged URI."
   [uri]
   (when tracked-uris-atom
     (swap! tracked-uris-atom conj uri))
