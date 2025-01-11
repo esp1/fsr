@@ -1,13 +1,17 @@
 (ns esp1.fsr.ring
   (:require [clojure.java.io :as io]
-            [clojure.string :as string]
-            [esp1.fsr.core :refer [clj->ns-sym file-ns-name-components file->clj http-endpoint-fn ns-endpoint-meta uri->file+params]]))
-
-(defn get-root-ns-prefix
-  [root-fs-prefix]
-  (string/join "." (file-ns-name-components (io/file root-fs-prefix))))
+            [esp1.fsr.core :refer [clj->ns-sym
+                                   file->clj
+                                   get-root-ns-prefix
+                                   http-endpoint-fn
+                                   ns-endpoint-meta
+                                   uri->file+params]]))
 
 (defn uri->endpoint-fn
+  "Returns a Ring handler function for the given HTTP method and URI
+   by searching for an appropriately annotated Clojure namespace in the filesystem.
+   Path parameters in the URI will be added to the handler request map argument under the :endpoing/path-params key.
+   If no appropriate handler function can be found in the filesystem, returns nil."
   [method uri root-fs-prefix]
   (when-let [[f path-params] (uri->file+params uri (io/file root-fs-prefix))]
     (let [endpoint-meta (-> f
