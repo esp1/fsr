@@ -69,7 +69,9 @@ Once fsr matches a URI to a Clojure file, it needs to find the function within t
 
 In the example above, the namespace metadata tells fsr to use the `GET` function to service HTTP GET requests, and to use the `POST` method to service HTTP POST requests.
 
-Here is another example that also demonstrates dynamic path parameters:
+# Handler Functions
+Hander functions are called with a [Ring request map](https://github.com/ring-clojure/ring/wiki/Concepts#requests) object. If the handler namespace contains path parameters, the Ring request will contain an additional `:endpoint/path-params` key whose value maps the keywordized parameter names to their values in the request URI.
+
 ```
 (ns com.example.pages.thing.<id>
   {:endpoint/http {:get 'GET
@@ -87,6 +89,21 @@ Here is another example that also demonstrates dynamic path parameters:
   ;; Delete the thing with ID 'id'
   ;; Response: Redirect to /thing
   )
+```
+
+## Handler Responses
+Handler functions are expected to return a [Ring response map](https://github.com/ring-clojure/ring/wiki/Concepts#responses).
+
+For convenience fsr also allows handler functions to return a string response, in which case fsr will use that string as the `:body` value in a HTTP 200 Ok Ring response:
+```
+{:status 200
+ :headers {"Content-Type" "text/html"}
+ :body response}
+```
+
+Also for convenience if a handler function returns `nil`, fsr will translate that into a HTTP 204 No Content Ring response:
+```
+{:status 204}
 ```
 
 # Static Site Generation
