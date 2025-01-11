@@ -1,7 +1,9 @@
 # fsr
 A filesystem router for Clojure web projects.
 
-**fsr** lets you configure web server routes for dynamic content simply by [arranging](#uri-to-file-route-matching) [annotated](#namespace-annotations) Clojure files in your filesystem.
+**fsr** lets you configure web server routes for dynamic content simply by [arranging](#uri-to-file-route-matching) [annotated](#namespace-annotations) Clojure files in your filesystem. 
+
+It also allows you to [statically publish](#) content from all of your HTTP GET endpoints, so you can use it as a static site generator.
 
 # Setup
 1. Add the fsr dependency to your `deps.edn` file:
@@ -86,3 +88,27 @@ Here is another example that also demonstrates dynamic path parameters:
   ;; Response: Redirect to /thing
   )
 ```
+
+# Static Site Generation
+You can also use fsr to generate a static site, if all your endpoint functions use HTTP GET methods (static sites only support GET methods).
+You can do this by calling `esp1.fsr.static/publish-static` and providing it with your root filesystem prefix, and a directory to publish the static content to.
+
+```
+(require '[esp1.fsr.static :refer [publish-static]])
+
+(publish-static "src/my_app/pages" "dist")
+```
+
+`publish-static` searches for all fsr HTTP GET endpoint functions under the root filesystem prefix, and invokes them with the URI corresponding to their location in the filesystem, as long as that URI does not contain any path parameters.
+
+## Tracking URIs with path parameters
+If you have endpoint functions that use dynamic path parameters, you can still generate them statically, but you will need to have your code track their URIs.
+To do this, all you need to do is wrap any code that generates a dynamic URI with the `esp1.fsr.track-uri/track-uri` function.
+
+Here is an example where we wrap the code that constructs the `:href` value with `track-uri`:
+```
+[:a {:href (track-uri (str "/thing/" thing-id))}
+  thing-id]
+```
+
+Once you track your dynamic URIs in this manner, `publish-static` will be able to generate static content for those URIs as well.
