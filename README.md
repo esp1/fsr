@@ -6,7 +6,7 @@ A filesystem router for Clojure web projects.
 # Setup
 1. Add the fsr dependency to your `deps.edn` file:
 ```
-io.github.esp1/fsr {:git/sha "29849c506e5bf817df9fca36897e5ea9bf7a3e5a"}
+io.github.esp1/fsr {:git/sha "69767094edcb4aea76532ff675b5e20491ce3cb4"}
 ```
 
 2. Wrap your Ring application handler with the `wrap-fs-router` [middleware](https://github.com/ring-clojure/ring/wiki/Concepts#handlers) and configure it with a **root filesystem path**. This is a path within your Clojure source directory where fsr will resolve routes. In the exmaple configuration below the root filesystem path is `src/my_app/routes`:
