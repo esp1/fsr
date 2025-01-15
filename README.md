@@ -52,36 +52,46 @@ Once fsr matches a URI to a Clojure file, it needs to find the function within t
 
 ```
 (ns my-app.pages.thing
-  {:endpoint/http {:get 'GET
-                   :post 'POST}})
+  {:endpoint/http {:get 'show-create-new-thing-page-endpoint
+                   :post 'create-new-thing-endpoint}})
 
-(defn GET [request]
-  ;; Response: List all the things
+(defn show-create-new-thing-page-endpoint
+  [request]
+  ;; Response: Show page with form to create new thing
   )
 
-(defn POST [request]
+(defn create-new-thing-endpoint
+  [request]
   ;; Create a new thing, assign it an ID
   ;; Response: Redirect to /thing/id
   )
 ```
 
-In the example above, the namespace metadata tells fsr to use the `GET` function to service HTTP GET requests, and to use the `POST` method to service HTTP POST requests.
+In the example above, the namespace metadata tells fsr to use the `show-create-new-thing-page-endpoint` function to service HTTP GET requests, and to use the `create-new-thing-endpoint` method to service HTTP POST requests for the `/thing` URI.
 
 # Handler Functions
 Hander functions are called with a [Ring request map](https://github.com/ring-clojure/ring/wiki/Concepts#requests) object. If the handler namespace contains path parameters, the Ring request will contain an additional `:endpoint/path-params` key whose value maps the keywordized parameter names to their values in the request URI.
 
 ```
 (ns com.example.pages.thing.<id>
-  {:endpoint/http {:get 'GET
-                   :delete 'DELETE}})
+  {:endpoint/http {:get 'show-thing-page-endpoint
+                   :put 'update-thing-endpoint
+                   :delete 'delete-thing-endpoint}})
 
-(defn GET
+(defn show-thing-page-endpoint
   [{:as request
     {:keys [id]} :endpoint/path-params}]
   ;; Response: Show the thing with ID 'id'
   )
 
-(defn DELETE
+(defn update-thing-page-endpoint
+  [{:as request
+    {:keys [id]} :endpoint/path-params}]
+  ;; Update the thing with ID 'id'
+  ;; Response: Show the updated thing with ID 'id'
+  )
+
+(defn delete-thing-endpoint
   [{:as request
     {:keys [id]} :endpoint/path-params}]
   ;; Delete the thing with ID 'id'
