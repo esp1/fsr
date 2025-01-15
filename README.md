@@ -1,7 +1,7 @@
 # fsr
 A filesystem router for Clojure web projects.
 
-**fsr** lets you configure web server routes for dynamic content simply by [arranging](#uri-to-file-route-matching) [annotated](#namespace-annotations) Clojure namespace files in your source directory. It supports dynamic [path parameters](#path-parameters) in route URIs, and can also be used as a [static site generator](#static-site-generation).
+**fsr** lets you configure web server routes for dynamic content simply by [arranging](#uri-to-file-route-matching) [annotated](#namespace-annotations) Clojure namespace files in your source directory in a way that closely mirrors the structure of your web site. It supports dynamic [path parameters](#path-parameters) in route URIs, and can also be used as a [static site generator](#static-site-generation).
 
 # Setup
 1. Add the fsr dependency to your `deps.edn` file:
