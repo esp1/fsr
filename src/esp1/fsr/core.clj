@@ -75,8 +75,7 @@
                         (let [[param-values [_ remaining-uri]] (split-at (count param-names) matches)]
                           [remaining-uri
                            f
-                           (zipmap (map keyword param-names)
-                                   param-values)])))))
+                           (zipmap param-names param-values)])))))
              (keep identity))]
     (cond
       (empty? match-infos) nil

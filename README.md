@@ -45,7 +45,7 @@ URIs are matched against namespace names, not filenames. Dashes (`-`) in Clojure
 
 fsr supports routes with dynamic path parameters. Path parameters are indicated by surrounding the parameter name with single angle brackets (`<` `>`) for parameter values not containing slashes (`/`), or double angle brackets (`<<` `>>`) for parameter values that may contain any value, including slashes. Note that if you use a double angle bracket parameter, it must occur at the end of the URI path.
 
-When a route with path parameters is matched, the route handler function's `request` object will contain a `:endpoint/path-params` key whose value is a map of the keywordized parameter names to their values pulled from the URI. Path parameter values are always strings.
+When a route with path parameters is matched, the route handler function's `request` object will contain a `:endpoint/path-params` key whose value is a map of the string parameter names to their values pulled from the URI. Path parameter values are always strings.
 
 # Namespace Annotations
 Once fsr matches a URI to a Clojure file, it needs to find the function within that file to handle the request. To do this, fsr looks in the namespace metadata for a `:endpoint/http` key, whose value is a map of http method keywords to function symbols.
@@ -70,7 +70,7 @@ Once fsr matches a URI to a Clojure file, it needs to find the function within t
 In the example above, the namespace metadata tells fsr to use the `show-create-new-thing-page-endpoint` function to service HTTP GET requests, and to use the `create-new-thing-endpoint` method to service HTTP POST requests for the `/thing` URI.
 
 # Handler Functions
-Hander functions are called with a [Ring request map](https://github.com/ring-clojure/ring/wiki/Concepts#requests) object. If the handler namespace contains path parameters, the Ring request will contain an additional `:endpoint/path-params` key whose value maps the keywordized parameter names to their values in the request URI.
+Hander functions are called with a [Ring request map](https://github.com/ring-clojure/ring/wiki/Concepts#requests) object. If the handler namespace contains path parameters, the Ring request will contain an additional `:endpoint/path-params` key whose value maps the string parameter names to their values in the request URI.
 
 ```
 (ns com.example.pages.thing.<id>
@@ -80,20 +80,20 @@ Hander functions are called with a [Ring request map](https://github.com/ring-cl
 
 (defn show-thing-page-endpoint
   [{:as request
-    {:keys [id]} :endpoint/path-params}]
+    {:strs [id]} :endpoint/path-params}]
   ;; Response: Show the thing with ID 'id'
   )
 
 (defn update-thing-page-endpoint
   [{:as request
-    {:keys [id]} :endpoint/path-params}]
+    {:strs [id]} :endpoint/path-params}]
   ;; Update the thing with ID 'id'
   ;; Response: Show the updated thing with ID 'id'
   )
 
 (defn delete-thing-endpoint
   [{:as request
-    {:keys [id]} :endpoint/path-params}]
+    {:strs [id]} :endpoint/path-params}]
   ;; Delete the thing with ID 'id'
   ;; Response: Redirect to /thing
   )
