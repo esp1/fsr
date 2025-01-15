@@ -18,12 +18,12 @@
                            (.getNameCount (.toPath f)))))))))
 
 (defn get-root-ns-prefix
-  "Given a root filesystem prefix file path,
+  "Given a root filesystem path,
    returns the associated root namespace prefix string.
-   It does this by scanning the fileystem prefix for a clojure file,
-   and returning the portion of the namepace corresponding to the filesystem prefix."
-  [root-fs-prefix]
-  (string/join "." (file-ns-name-components (io/file root-fs-prefix))))
+   It does this by scanning the root fileystem path for a clojure file,
+   and returning the portion of the namepace corresponding to the filesystem path."
+  [root-fs-path]
+  (string/join "." (file-ns-name-components (io/file root-fs-path))))
 
 (defn- filename-match-info
   "Given a filename,

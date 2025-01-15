@@ -9,7 +9,7 @@ A filesystem router for Clojure web projects.
 io.github.esp1/fsr {:git/sha "29849c506e5bf817df9fca36897e5ea9bf7a3e5a"}
 ```
 
-2. Wrap your Ring application handler with the `wrap-fs-router` [middleware](https://github.com/ring-clojure/ring/wiki/Concepts#handlers) and configure it with a **root filesystem prefix**. This is a path within your Clojure source directory where fsr will resolve routes. In the exmaple configuration below the root filesystem path is `src/my_app/routes`:
+2. Wrap your Ring application handler with the `wrap-fs-router` [middleware](https://github.com/ring-clojure/ring/wiki/Concepts#handlers) and configure it with a **root filesystem path**. This is a path within your Clojure source directory where fsr will resolve routes. In the exmaple configuration below the root filesystem path is `src/my_app/routes`:
 ```
 (ns my-app.server
   (:require [esp1.fsr.ring :refer [wrap-fs-router]]))
@@ -22,7 +22,7 @@ io.github.esp1/fsr {:git/sha "29849c506e5bf817df9fca36897e5ea9bf7a3e5a"}
 3. Add routes by placing Clojure files with handler functions under `src/my_app/routes`. See below for details:
 
 # URI to File Route Matching
-The following examples assume your fsr root filesystem prefix is `src/my_app/routes`.
+The following examples assume your fsr root filesystem path is `src/my_app/routes`.
 
 ## Simple Route Matching
 | URI | Clojure file | Clojure namespace |
@@ -31,9 +31,9 @@ The following examples assume your fsr root filesystem prefix is `src/my_app/rou
 | **/foo** | src/my_app/routes/**foo/index.clj** | my-app.routes.**index** |
 | **/foo-bar** | src/my_app/routes/**foo_bar.clj** | my-app.routes.**foo-bar** |
 
-fsr matches URI routes by looking under the root filesystem prefix for a `.clj` file with the same file path as the URI.
+fsr matches URI routes by looking under the fsr root filesystem path for a `.clj` file with the same file path as the URI.
 
-Alternatively, it will look under the root filesystem prefix for an `index.clj` file in a directory with the same directory path as the URI.
+Alternatively, it will look under the fsr root filesystem path for an `index.clj` file in a directory with the same directory path as the URI.
 
 URIs are matched against namespace names, not filenames. Dashes (`-`) in Clojure namespace names are converted to underscores (`_`) in their filenames. So you can match URIs with dashes in them by using dashes in your namespace names - just remember that their filenames will have those dashes converted to underscores.
 
@@ -100,23 +100,22 @@ Hander functions are called with a [Ring request map](https://github.com/ring-cl
 ```
 
 ## Handler Responses
-Handler functions are expected to return a [Ring response map](https://github.com/ring-clojure/ring/wiki/Concepts#responses).
-
-For convenience fsr also allows handler functions to return a string response, in which case fsr will use that string as the `:body` value in a `HTTP 200 Ok` Ring response:
+Handler functions are expected to return either:
+- a [Ring response map](https://github.com/ring-clojure/ring/wiki/Concepts#responses)
+- a string, which fsr use as the `:body` of an `HTTP 200 Ok` Ring response:
 ```
 {:status 200
  :headers {"Content-Type" "text/html"}
  :body response}
 ```
-
-Also for convenience if a handler function returns `nil`, fsr will translate that into a `HTTP 204 No Content` Ring response:
+-  `nil`, which fsr will translate into a `HTTP 204 No Content` Ring response:
 ```
 {:status 204}
 ```
 
 # Static Site Generation
 You can also use fsr to generate a static site, if all your endpoint functions use HTTP GET methods (static sites only support GET methods).
-You can do this by calling `esp1.fsr.static/publish-static` and providing it with your root filesystem prefix, and a directory to publish the static content to.
+You can do this by calling `esp1.fsr.static/publish-static` and providing it with your fsr root filesystem path, and a directory to publish the static content to.
 
 ```
 (require '[esp1.fsr.static :refer [publish-static]])
@@ -124,7 +123,7 @@ You can do this by calling `esp1.fsr.static/publish-static` and providing it wit
 (publish-static "src/my_app/routes" "dist")
 ```
 
-`publish-static` searches for all fsr HTTP GET endpoint functions under the root filesystem prefix, and invokes them with the URI corresponding to their location in the filesystem, as long as that URI does not contain any path parameters.
+`publish-static` searches for all fsr HTTP GET endpoint functions under the fsr root filesystem path, and invokes them with the URI corresponding to their location in the filesystem, as long as that URI does not contain any path parameters.
 
 ## Tracking URIs with path parameters
 If you have endpoint functions that use dynamic path parameters, you can still generate them statically, but you will need to have your code track their URIs.

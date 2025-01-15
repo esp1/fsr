@@ -20,22 +20,22 @@
   (spit out-file (endpoint-fn {:uri uri})))
 
 (defn publish-static
-  "Finds all HTTP GET endpoint functions in root-fs-prefix, invokes them for all known URIs, and publishes their results to publish-dir.
+  "Finds all HTTP GET endpoint functions in root-fs-path, invokes them for all known URIs, and publishes their results to publish-dir.
    Known URIs are either non-parameterized URIs, or URIs tracked with `esp1.fsr.track-uri/track-uri` and collected in `esp1.fsr.track-uri/tracked-uris-atom`."
-  [root-fs-prefix publish-dir]
-  {:pre [(and root-fs-prefix publish-dir)]}
+  [root-fs-path publish-dir]
+  {:pre [(and root-fs-path publish-dir)]}
   (binding [tracked-uris-atom (atom #{})]
-    (let [ns-syms (endpoint-ns-syms root-fs-prefix)
-          uris (map #(ns-sym->uri % (get-root-ns-prefix root-fs-prefix)) ns-syms)]
+    (let [ns-syms (endpoint-ns-syms root-fs-path)
+          uris (map #(ns-sym->uri % (get-root-ns-prefix root-fs-path)) ns-syms)]
       ;; Generate non-parameterized endpoints (& collect tracked URIs in the process)
       (doseq [uri uris]
         (when-not (re-find #"<[^/>]*>" uri) ; filter out parameterized endpoint URIs
-          (when-let [endpoint-fn (uri->endpoint-fn :get uri root-fs-prefix)]
+          (when-let [endpoint-fn (uri->endpoint-fn :get uri root-fs-path)]
             (generate-file (io/file publish-dir uri "index.html") endpoint-fn uri))))
       ;; Generate tracked URIs
       (doseq [uri @tracked-uris-atom]
         (let [relative-uri (string/replace uri #"^/" "")
-              endpoint-fn (uri->endpoint-fn :get uri root-fs-prefix)]
+              endpoint-fn (uri->endpoint-fn :get uri root-fs-path)]
           (generate-file (io/file publish-dir (if (string/ends-with? relative-uri "/")
                                                 (str relative-uri "index.html")
                                                 relative-uri))
