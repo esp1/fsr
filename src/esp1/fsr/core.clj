@@ -1,4 +1,7 @@
 (ns esp1.fsr.core
+  "Core fsr functions that are used internally by fsr,
+   but can also be used to construct other mechanisms
+   that take advantage of fsr's namespace metadata and route resolution functionality."
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.string :as string]

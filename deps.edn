@@ -8,8 +8,8 @@
                                :description "A filesystem router for Clojure web projects."
                                :version "main"
                                :source-paths ["src"]
-                               :namespaces [esp1.fsr.core esp1.fsr.ring esp1.fsr.static esp1.fsr.track-uri]
+                               :namespaces [esp1.fsr.core esp1.fsr.ring esp1.fsr.static]
                                :metadata {:doc/format :markdown}
                                :source-uri "https://github.com/esp1/fsr/blob/{version}/{filepath}#L{line}"
-                               :output-path "doc/api"}}
+                               :output-path "docs/api"}}
            :publish {:exec-fn esp1.static/build}}}

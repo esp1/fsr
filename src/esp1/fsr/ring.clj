@@ -1,11 +1,11 @@
 (ns esp1.fsr.ring
+  "Provides a `wrap-fs-router` [Ring middleware](https://github.com/ring-clojure/ring/wiki/Concepts#middleware) function that resolves routes
+   from Clojure namespaces and functions in the filesystem."
   (:require [clojure.java.io :as io]
             [esp1.fsr.core :refer [clj->ns-sym
                                    file->clj
-                                   get-root-ns-prefix
                                    http-endpoint-fn
                                    ns-endpoint-meta
-                                   ns-sym->uri
                                    uri->file+params]]))
 
 (defn uri->endpoint-fn
@@ -33,9 +33,7 @@
    If an endpoint handler function is found, it will be augmented so that
    the Ring request map passed as an argument to the function when it is invoked
    will have the metadata map of the namespace matching the URI merged into it,
-   and will also contain the following keys:
-   - `:endpoint/uri` - The URI associated with this namespace. If a `ns-prefix` is specified, it is elided from the URI path.
-   - `:endpoint/ns` - The symbol for the namespace matching the URI.
+   and also contain a `:endpoint/ns` key whose value is the symbol for the namespace matching the URI.
 
    If the handler namespace name contains path parameters,
    the request map will contain an additional `:endpoint/path-params` key
@@ -46,11 +44,10 @@
    or double angle brackets `<<` `>>` to match a parameter value that may contain a slash `/` character."
   [method uri root-fs-path]
   (when-let [[f path-params] (uri->file+params uri (io/file root-fs-path))]
-    (let [ns-sym (-> f
-                     file->clj
-                     clj->ns-sym)
-          endpoint-meta (-> (ns-endpoint-meta ns-sym)
-                            (assoc :endpoint/uri (ns-sym->uri ns-sym (get-root-ns-prefix root-fs-path))))]
+    (let [endpoint-meta (-> f
+                            file->clj
+                            clj->ns-sym
+                            ns-endpoint-meta)]
       (when-let [http-fn (http-endpoint-fn method endpoint-meta)]
         (fn [request]
           (http-fn (merge request

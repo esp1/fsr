@@ -1,7 +1,7 @@
 # fsr
 A filesystem router for Clojure web projects.
 
-**fsr** lets you configure web server routes for dynamic content simply by [arranging](#uri-to-file-route-matching) [annotated](#namespace-annotations) Clojure namespace files in your source directory in a way that closely mirrors the structure of your web site. At its core is functionality to map between URIs and filesystem paths, including URIs with dynamic [path parameters](#path-parameters). Its namespace metadata and route resolution mechanisms can also be leveraged to implement [custom templates](#custom-templates) for your content. And it can also be used as a [static site generator](#static-site-generation).
+**fsr** lets you configure web server routes for dynamic content simply by [arranging](#uri-to-file-route-matching) [annotated](#namespace-annotations) Clojure namespace files in your source directory in a way that closely mirrors the structure of your web site. At its core is functionality to map between URIs and filesystem paths, including URIs with dynamic [path parameters](#path-parameters). Its namespace metadata and route resolution mechanisms can be leveraged to implement [custom templates](#custom-templates) for your content. And it can also be used as a [static site generator](#static-site-generation).
 
 [API docs](https://esp1.github.io/fsr/api/)
 
@@ -11,7 +11,7 @@ A filesystem router for Clojure web projects.
 io.github.esp1/fsr {:git/sha "23fbfed1044b9c2f52d3256d75a6253b80ca56fe"}
 ```
 
-2. Wrap your Ring application handler with the `wrap-fs-router` [middleware](https://github.com/ring-clojure/ring/wiki/Concepts#handlers) and configure it with a **root filesystem path**. This is a path within your Clojure source directory where fsr will resolve routes. In the exmaple configuration below the root filesystem path is `src/my_app/routes`:
+2. Wrap your Ring application handler with the `wrap-fs-router` [middleware](https://github.com/ring-clojure/ring/wiki/Concepts#middleware) and configure it with a **root filesystem path**. This is a path within your Clojure source directory where fsr will resolve routes. In the exmaple configuration below the root filesystem path is `src/my_app/routes`:
 ```
 (ns my-app.server
   (:require [esp1.fsr.ring :refer [wrap-fs-router]]))
@@ -109,9 +109,7 @@ The `GET-blog-post` function renders the page header and footer, and in between 
 This is a very simple example, but it can easily be extended to support passing additional parameters from the template to the content function, passing additional information to the template function by adding things to the URI namespace metadata, etc.
 
 # Handler Functions
-Hander functions are called with a [Ring request map](https://github.com/ring-clojure/ring/wiki/Concepts#requests) that has been merged with the metadata map of the namespace matching the URI, and also the following keys:
-- `:endpoint/uri` - The URI associated with this namespace. If a `ns-prefix` is specified, it is elided from the URI path.
-- `:endpoint/ns` - The symbol for the namespace matching the URI.
+Hander functions are called with a [Ring request map](https://github.com/ring-clojure/ring/wiki/Concepts#requests) that will have the metadata map of the namespace matching the URI merged into it, and also contain a `:endpoint/ns` key whose value is the symbol for the namespace matching the URI.
 
 If the handler namespace name contains path parameters, the request map will contain an additional `:endpoint/path-params` key whose value maps the string parameter names to their values in the request URI.
 
@@ -170,7 +168,7 @@ You can do this by calling `esp1.fsr.static/publish-static` and providing it wit
 
 ## Tracking URIs with path parameters
 If you have endpoint functions that use dynamic path parameters, you can still generate them statically, but you will need to have your code track their URIs.
-To do this, all you need to do is wrap any code that generates a dynamic URI with the `esp1.fsr.track-uri/track-uri` function.
+To do this, all you need to do is wrap any code that generates a dynamic URI with the `esp1.fsr.static/track-uri` function.
 
 Here is an example where we wrap the code that constructs the `:href` value with `track-uri`:
 ```

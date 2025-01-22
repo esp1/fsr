@@ -1,9 +1,28 @@
 (ns esp1.fsr.static
+  "Static site generation functionality.
+   
+   Provides a `publish-static` function to publish static site to an output directory.
+   
+   Also provides a `track-uri` function that can be used to track dynamically constructed URIs
+   so that they can be included in static site generation."
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
             [esp1.fsr.core :refer [clj->ns-sym get-root-ns-prefix ns-sym->uri]]
-            [esp1.fsr.ring :refer [uri->endpoint-fn]]
-            [esp1.fsr.track-uri :refer [tracked-uris-atom]]))
+            [esp1.fsr.ring :refer [uri->endpoint-fn]]))
+
+(def ^:dynamic tracked-uris-atom
+  "Dynamically bound atom to hold tracked URIs.
+   See `track-uri`."
+  nil)
+
+(defn track-uri
+  "Adds URI to `tracked-uris-atom` if it exists
+   so that it can be included in static site generation.
+   Returns the unchanged URI."
+  [uri]
+  (when tracked-uris-atom
+    (swap! tracked-uris-atom conj uri))
+  uri)
 
 (defn endpoint-ns-syms
   "Return all endpoint namespace symbols under the given root dir."
@@ -41,7 +60,7 @@
 
 (defn publish-static
   "Finds all HTTP GET endpoint functions in root-fs-path, invokes them for all known URIs, and publishes their results to publish-dir.
-   Known URIs are either non-parameterized URIs, or URIs tracked with `esp1.fsr.track-uri/track-uri` and collected in `esp1.fsr.track-uri/tracked-uris-atom`."
+   Known URIs are either non-parameterized URIs, or URIs tracked with `track-uri` and collected in `tracked-uris-atom`."
   [root-fs-path publish-dir]
   {:pre [(and root-fs-path publish-dir)]}
   (binding [tracked-uris-atom (atom #{})]
