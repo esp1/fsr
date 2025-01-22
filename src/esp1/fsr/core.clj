@@ -195,5 +195,5 @@
                    (:endpoint/ns endpoint-meta))
       (when-let [endpoint-type-sym (:endpoint/type endpoint-meta)]
         (require endpoint-type-sym)
-        (when-let [type-ns (find-ns endpoint-type-sym)]
-          (http-endpoint-fn method (ns-endpoint-meta type-ns))))))
+        (when (find-ns endpoint-type-sym)
+          (http-endpoint-fn method (ns-endpoint-meta endpoint-type-sym))))))
