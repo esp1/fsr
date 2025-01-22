@@ -14,10 +14,30 @@
        (keep identity)))
 
 (defn generate-file
+  "Evaluates the given endpoint-fn for the given URI,
+   and if the return value is a string or a HTTP 200 Ok response map,
+   will write the response body to out-file.
+   If the return value from the function is anything else,
+   will throw an Exception."
   [out-file endpoint-fn uri]
   (println "Generating" (.getPath out-file))
-  (.mkdirs (.getParentFile out-file))
-  (spit out-file (endpoint-fn {:uri uri})))
+  (let [result (endpoint-fn {:uri uri})]
+    (when-let [output (cond
+                        (string? result)
+                        result
+
+                        (and (map? result) (= (:status result) 200))
+                        (:body result)
+
+                        :else
+                        (throw
+                         (Exception.
+                          (str "Not generating file from endpoint function " endpoint-fn
+                               " for URI " uri
+                               " because the result is not a string or a HTTP 200 Ok Ring response map: "
+                               (pr-str result)))))]
+      (.mkdirs (.getParentFile out-file))
+      (spit out-file output))))
 
 (defn publish-static
   "Finds all HTTP GET endpoint functions in root-fs-path, invokes them for all known URIs, and publishes their results to publish-dir.

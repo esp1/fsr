@@ -43,7 +43,7 @@ URIs are matched against namespace names, not filenames. Dashes (`-`) in Clojure
 | **/thing/123** | src/my_app/routes/**thing/\<id\>.clj** | my-app.routes.**thing.\<id\>** | {:id "123"} |
 | **/category/humor/title/Sorry/NotSorry** | src/my_app/routes/**category/\<category\>/title/\<\<title\>\>.clj** | my-app.routes.**category.\<category\>.title.\<\<title\>\>** | {:category "humor", :title "Sorry/NotSorry"} |
 
-fsr supports routes with dynamic path parameters. Path parameters are indicated by surrounding the parameter name with single angle brackets (`<` `>`) for parameter values not containing slashes (`/`), or double angle brackets (`<<` `>>`) for parameter values that may contain any value, including slashes. Note that if you use a double angle bracket parameter, it must occur at the end of the URI path.
+fsr supports routes with dynamic path parameters. Path parameters are indicated by surrounding the parameter name with single angle brackets (`<` `>`) for parameter values not containing slashes (`/`), or double angle brackets (`<<` `>>`) for parameter values that may contain any value, including slashes. Note that if you use a double angle bracket parameter, it should occur at the end of the URI path.
 
 When a route with path parameters is matched, the route handler function's `request` object will contain a `:endpoint/path-params` key whose value is a map of the string parameter names to their values pulled from the URI. Path parameter values are always strings.
 
@@ -69,8 +69,49 @@ Once fsr matches a URI to a Clojure file, it needs to find the function within t
 
 In the example above, the namespace metadata tells fsr to use the `GET-create-thing` function to service HTTP GET requests, and to use the `POST-create-thing` method to service HTTP POST requests for the `/thing` URI.
 
+If no matching handler function is found in the URI namespace metadata's `:endpoint/http` map, fsr will look for a `:endpoint/type` key in the namespace metadata, whose value is a symbol of another namespace in which to recursively look for a `:endpoint/http` or `:endpoint/type` key and a matching endpoint function.
+
+## Custom Templates
+The above `:endpoint/type` functionality can be used to implement custom templating mechanisms.
+
+Here is an example of a blog page that uses a template defined in `my-app.layouts.blog-post`. It defines a `content` function that just renders the blog content itself, without the surrounding page header and footer.
+```
+(ns my-app.routes.blog.2025-01-01
+  {:endpoint/type 'my-app.layouts.blog-post})
+
+(defn content []
+  ;; Render blog contents
+  )
+```
+
+HTTP GET requests to this page will be serviced by the `:get` endpoint function in the `my-app.layouts.blog-post` namespace:
+```
+(ns my-app.layouts.blog-post
+  {:endpoint/http {:get 'GET-blog-post}})
+
+(defn GET-blog-post
+  [{:as request
+    ns-sym :endpoint/ns}]
+  ;; Render blog page template header
+
+  ;; Call content function to render blog content
+  (let [content-fn (ns-resolve ns-sym 'content)]
+    (content-fn))
+  
+  ;; Render blog page template footer
+  )
+```
+
+The `GET-blog-post` function renders the page header and footer, and in between resolves the `content` function of the namespace matching the URI (which fsr automatically adds to the request map - see [Handler Functions](#handler-functions) below) and calls it.
+
+This is a very simple example, but it can easily be extended to support passing additional parameters from the template to the content function, passing additional information to the template function by adding things to the URI namespace metadata, etc.
+
 # Handler Functions
-Hander functions are called with a [Ring request map](https://github.com/ring-clojure/ring/wiki/Concepts#requests) object. If the handler namespace contains path parameters, the Ring request will contain an additional `:endpoint/path-params` key whose value maps the string parameter names to their values in the request URI.
+Hander functions are called with a [Ring request map](https://github.com/ring-clojure/ring/wiki/Concepts#requests) that has been merged with the metadata map of the namespace matching the URI, and also the following keys:
+- `:endpoint/uri` - The URI associated with this namespace. If a `ns-prefix` is specified, it is elided from the URI path.
+- `:endpoint/ns` - The symbol for the namespace matching the URI.
+
+If the handler namespace name contains path parameters, the request map will contain an additional `:endpoint/path-params` key whose value maps the string parameter names to their values in the request URI.
 
 ```
 (ns my-app.routes.thing.<id>

@@ -28,7 +28,12 @@
 (defn- filename-match-info
   "Given a filename,
    returns a vector 2-tuple containing a regex string for matching against this filename in a regex pattern,
-   and a (possibly empty) vector of path parameter names."
+   and a (possibly empty) vector of path parameter names.
+
+   Parameters in filenames are delineated by single angle brackets `<` `>`
+   to match a parameter value that does not contain a slash `/` character,
+   or double angle brackets `<<` `>>`
+   to match a parameter value that may contain a slash `/` character."
   {:malli/schema [:=> [:catn
                        [:filename string?]]
                   [:catn
@@ -149,20 +154,17 @@
 
 (defn ns-endpoint-meta
   "Returns the endpoint metadata associated with the given namespace symbol, or nil if no such namespace is found.
-   The returned endpoint metadata will contain the following keys, in addition to any metadata associated with the namespace:
-   - `:endpoint/ns` - The symbol for this namespace.
-   - `:endpoint/uri` - The URI associated with this namespace. If a `ns-prefix` is specified, it is elided from the URI path."
+   The returned endpoint metadata will contain a `:endpoint/ns` key whose value is the symbol for this namespace,
+   along with any other metadata associated with the namespace."
   {:malli/schema [:=> [:catn
                        [:ns-sym [:maybe symbol?]]
                        [:ns-prefix string?]]
                   [:maybe map?]]}
-  [ns-sym ns-prefix]
+  [ns-sym]
   (when ns-sym
     (require ns-sym)
     (when-let [ns (find-ns ns-sym)]
-      (assoc (meta ns)
-             :endpoint/ns ns-sym
-             :endpoint/uri (ns-sym->uri ns-sym ns-prefix)))))
+      (assoc (meta ns) :endpoint/ns ns-sym))))
 
 (defn resolve-sym
   "Resolves the given symbol and returns it.
@@ -178,6 +180,15 @@
 (defn http-endpoint-fn
   "Returns the http endpoint function corresponding to the given request method (e.g. :get, :post, etc)
    in the given endpoint metadata map.
+   
+   Will first look for a the given request method in the `:endpoint/http` map
+   and if found, resolves its matching endpoint function and returns it.
+   
+   If no matching function is found,
+   will look for a `:endpoint/type` attribute whose value is a symbol of another namespace
+   in which to recursively look for a `:endpoint/http` or `:endpoint/type` key
+   and a matching endpoint function.
+   
    If no function is found, returns nil."
   [method endpoint-meta]
   (or (resolve-sym (get-in endpoint-meta [:endpoint/http method])
@@ -185,5 +196,4 @@
       (when-let [endpoint-type-sym (:endpoint/type endpoint-meta)]
         (require endpoint-type-sym)
         (when-let [type-ns (find-ns endpoint-type-sym)]
-          (resolve-sym (get-in (meta type-ns) [:endpoint-type/http method])
-                       endpoint-type-sym)))))
+          (http-endpoint-fn method (ns-endpoint-meta type-ns))))))
