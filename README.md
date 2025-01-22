@@ -104,7 +104,7 @@ HTTP GET requests to this page will be serviced by the `:get` endpoint function 
   )
 ```
 
-The `GET-blog-post` function renders the page header and footer, and in between resolves the `content` function of the namespace matching the URI (which fsr automatically adds to the request map - see [Handler Functions](#handler-functions) below) and calls it.
+The `GET-blog-post` function renders the page header and footer, and in between resolves the `content` function of the namespace matching the URI (via the `:endpoint/ns` attribute which fsr automatically adds to the request map - see [Handler Functions](#handler-functions) below) and calls it.
 
 This is a very simple example, but it can easily be extended to support passing additional parameters from the template to the content function, passing additional information to the template function by adding things to the URI namespace metadata, etc.
 
