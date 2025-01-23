@@ -7,12 +7,12 @@ A filesystem router for Clojure web projects.
 
 # Setup
 1. Add the fsr dependency to your `deps.edn` file:
-```
+```clojure
 io.github.esp1/fsr {:git/sha "561d578ac8347f93374dc779d547bc0f129f4218"}
 ```
 
 2. Wrap your Ring application handler with the `wrap-fs-router` [middleware](https://github.com/ring-clojure/ring/wiki/Concepts#middleware) and configure it with a **root filesystem path**. This is a path within your Clojure source directory where fsr will resolve routes. In the exmaple configuration below the root filesystem path is `src/my_app/routes`:
-```
+```clojure
 (ns my-app.server
   (:require [esp1.fsr.ring :refer [wrap-fs-router]]))
 
@@ -52,7 +52,7 @@ When a route with path parameters is matched, the route handler function's `requ
 # Namespace Annotations
 Once fsr matches a URI to a Clojure file, it needs to find the function within that file to handle the request. To do this, fsr looks in the namespace metadata for a `:endpoint/http` key, whose value is a map of http method keywords to function symbols.
 
-```
+```clojure
 (ns my-app.routes.thing
   {:endpoint/http {:get 'GET-create-thing
                    :post 'POST-create-thing}})
@@ -77,7 +77,7 @@ If no matching handler function is found in the URI namespace metadata's `:endpo
 The above `:endpoint/type` functionality can be used to implement custom templating mechanisms.
 
 Here is an example of a blog page that uses a template defined in `my-app.layouts.blog-post`. It defines a `content` function that just renders the blog content itself, without the surrounding page header and footer.
-```
+```clojure
 (ns my-app.routes.blog.2025-01-01
   {:endpoint/type 'my-app.layouts.blog-post})
 
@@ -87,7 +87,7 @@ Here is an example of a blog page that uses a template defined in `my-app.layout
 ```
 
 HTTP GET requests to this page will be serviced by the `:get` endpoint function in the `my-app.layouts.blog-post` namespace:
-```
+```clojure
 (ns my-app.layouts.blog-post
   {:endpoint/http {:get 'GET-blog-post}})
 
@@ -113,7 +113,7 @@ Hander functions are called with a [Ring request map](https://github.com/ring-cl
 
 If the handler namespace name contains path parameters, the request map will contain an additional `:endpoint/path-params` key whose value maps the string parameter names to their values in the request URI.
 
-```
+```clojure
 (ns my-app.routes.thing.<id>
   {:endpoint/http {:get 'GET-thing
                    :put 'PUT-thing
@@ -144,13 +144,13 @@ If the handler namespace name contains path parameters, the request map will con
 Handler functions are expected to return either:
 - a [Ring response map](https://github.com/ring-clojure/ring/wiki/Concepts#responses)
 - a string, which fsr use as the `:body` of an `HTTP 200 Ok` Ring response:
-```
+```clojure
 {:status 200
  :headers {"Content-Type" "text/html"}
  :body response}
 ```
 -  `nil`, which fsr will translate into a `HTTP 204 No Content` Ring response:
-```
+```clojure
 {:status 204}
 ```
 
@@ -158,7 +158,7 @@ Handler functions are expected to return either:
 You can also use fsr to generate a static site, if all your endpoint functions use HTTP GET methods (static sites only support GET methods).
 You can do this by calling `esp1.fsr.static/publish-static` and providing it with your fsr root filesystem path, and a directory to publish the static content to.
 
-```
+```clojure
 (require '[esp1.fsr.static :refer [publish-static]])
 
 (publish-static "src/my_app/routes" "dist")
@@ -171,7 +171,7 @@ If you have endpoint functions that use dynamic path parameters, you can still g
 To do this, all you need to do is wrap any code that generates a dynamic URI with the `esp1.fsr.static/track-uri` function.
 
 Here is an example where we wrap the code that constructs the `:href` value with `track-uri`:
-```
+```clojure
 [:a {:href (track-uri (str "/thing/" thing-id))}
   thing-id]
 ```
