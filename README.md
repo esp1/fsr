@@ -5,13 +5,13 @@ A filesystem router for Clojure web projects.
 
 [API docs](https://esp1.github.io/fsr/api/)
 
-# Setup
-1. Add the fsr dependency to your `deps.edn` file:
+# Usage
+1. Add the fsr dependency to your `deps.edn` file:  
 ```clojure
 io.github.esp1/fsr {:git/tag "v1.0.0", :git/sha "7cad5cb"}
 ```
 
-2. Wrap your Ring application handler with the `wrap-fs-router` [middleware](https://github.com/ring-clojure/ring/wiki/Concepts#middleware) and configure it with a **root filesystem path**. This is a path within your Clojure source directory where fsr will resolve routes. In the exmaple configuration below the root filesystem path is `src/my_app/routes`:
+2. Wrap your Ring application handler with the `wrap-fs-router` [middleware](https://github.com/ring-clojure/ring/wiki/Concepts#middleware) and configure it with a **root filesystem path**. This is a path within your Clojure source directory where fsr will resolve routes. In the exmaple configuration below the root filesystem path is `src/my_app/routes`:  
 ```clojure
 (ns my-app.server
   (:require [esp1.fsr.ring :refer [wrap-fs-router]]))
@@ -21,10 +21,20 @@ io.github.esp1/fsr {:git/tag "v1.0.0", :git/sha "7cad5cb"}
       (wrap-fs-router "src/my_app/routes")))
 ```
 
-3. Add routes by placing Clojure files with handler functions under `src/my_app/routes`. See below for details:
+3. Now just place `.clj` source files under your fsr root filesystem path, and add a bit of namespace metadata to point to your handler functions. For example, here is a `src/my_app/routes/index.clj` file that renders the homepage for the root `/` URL:  
+```clojure
+(ns my-app.routes.index
+  {:endpoint/http {:get 'GET-homepage}})
+
+(defn GET-homepage [request]
+  ;; Render home page
+  )
+```
+
+See below for more usage details.
 
 # URI to File Route Matching
-The following examples assume your fsr root filesystem path is `src/my_app/routes`.
+The following examples assume your fsr root filesystem path is `src/my_app/routes`. For your own usage, replace this with whatever you have configured your fsr root filesystem path to be.
 
 ## Simple Route Matching
 | URI | Clojure file | Clojure namespace |
