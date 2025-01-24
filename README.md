@@ -27,8 +27,7 @@ io.github.esp1/fsr {:git/tag "v1.0.0", :git/sha "7cad5cb"}
   {:endpoint/http {:get 'GET-homepage}})
 
 (defn GET-homepage [request]
-  ;; Render home page
-  )
+  "<h1>Welcome to my humble home</h1>")
 ```
 
 See below for more usage details.
@@ -152,17 +151,21 @@ If the handler namespace name contains path parameters, the request map will con
 
 ## Handler Responses
 Handler functions are expected to return either:
-- a [Ring response map](https://github.com/ring-clojure/ring/wiki/Concepts#responses)
-- a string, which fsr use as the `:body` of an `HTTP 200 Ok` Ring response:
+- a **string**, which fsr will treat as the `:body` of an `HTTP 200 Ok` Ring response  
 ```clojure
-{:status 200
- :headers {"Content-Type" "text/html"}
- :body response}
+(defn string-handler
+  [request]
+  "<h1>stuff</h1>")
 ```
--  `nil`, which fsr will translate into a `HTTP 204 No Content` Ring response:
+- a **[Ring response map](https://github.com/ring-clojure/ring/wiki/Concepts#responses)**  
 ```clojure
-{:status 204}
+(defn ring-response-handler
+  [request]
+  {:status 200
+   :headers {"Content-Type" "text/html"}
+   :body "<h1>stuff</h1>"})
 ```
+-  or **`nil`**, which fsr will translate into a `HTTP 204 No Content` Ring response
 
 # Static Site Generation
 You can also use fsr to generate a static site, if all your endpoint functions use HTTP GET methods (static sites only support GET methods).
