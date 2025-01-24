@@ -82,41 +82,6 @@ In the example above, the namespace metadata tells fsr to use the `GET-create-th
 
 If no matching handler function is found in the URI namespace metadata's `:endpoint/http` map, fsr will look for a `:endpoint/type` key in the namespace metadata, whose value is a symbol of another namespace in which to recursively look for a `:endpoint/http` or `:endpoint/type` key and a matching endpoint function.
 
-## Custom Templates
-The above `:endpoint/type` functionality can be used to implement custom templating mechanisms.
-
-Here is an example of a blog page that uses a template defined in `my-app.layouts.blog-post`. It defines a `content` function that just renders the blog content itself, without the surrounding page header and footer.
-```clojure
-(ns my-app.routes.blog.2025-01-01
-  {:endpoint/type 'my-app.layouts.blog-post})
-
-(defn content []
-  ;; Render blog contents
-  )
-```
-
-HTTP GET requests to this page will be serviced by the `:get` endpoint function in the `my-app.layouts.blog-post` namespace:
-```clojure
-(ns my-app.layouts.blog-post
-  {:endpoint/http {:get 'GET-blog-post}})
-
-(defn GET-blog-post
-  [{:as request
-    ns-sym :endpoint/ns}]
-  ;; Render blog page template header
-
-  ;; Call content function to render blog content
-  (let [content-fn (ns-resolve ns-sym 'content)]
-    (content-fn))
-  
-  ;; Render blog page template footer
-  )
-```
-
-The `GET-blog-post` function renders the page header and footer, and in between resolves the `content` function of the namespace matching the URI (via the `:endpoint/ns` attribute which fsr automatically adds to the request map - see [Handler Functions](#handler-functions) below) and calls it.
-
-This is a very simple example, but it can easily be extended to support passing additional parameters from the template to the content function, passing additional information to the template function by adding things to the URI namespace metadata, etc.
-
 # Handler Functions
 Hander functions are called with a [Ring request map](https://github.com/ring-clojure/ring/wiki/Concepts#requests) that will have the metadata map of the namespace matching the URI merged into it, and also contain a `:endpoint/ns` key whose value is the symbol for the namespace matching the URI.
 
@@ -166,6 +131,46 @@ Handler functions are expected to return either:
    :body "<h1>stuff</h1>"})
 ```
 -  or **`nil`**, which fsr will translate into a `HTTP 204 No Content` Ring response
+
+# Custom Templates
+You can implement your own custom template functions by using `:endpoint/type` namespace metadata (described in [Namespace Annotations](#namespace-annotations)) to defer request handling to a different namespace than the one the URI originally resolves to. The request handlers in that other namespace can then use the `:endpoint/ns` request attribute (described in [Handler Functions](#handler-functions)) to refer back to the original namespace that matched the URI.
+
+Here is an example of a blog page that uses a template defined in `my-app.layouts.blog-post`. It defines a `content` function that just renders the blog content itself, without the surrounding page header and footer.
+```clojure
+(ns my-app.routes.blog.2025-01-01_Another_fine_day
+  {:endpoint/type 'my-app.layouts.blog-post
+   :blog/image "/images/nature.png"})
+
+(defn content []
+  ;; Render blog contents
+  )
+```
+
+HTTP GET requests to this page will be serviced by the `:get` endpoint function in the `my-app.layouts.blog-post` namespace:
+```clojure
+(ns my-app.layouts.blog-post
+  {:endpoint/http {:get 'GET-blog-post}})
+
+(defn GET-blog-post
+  [{:as request
+    ns-sym :endpoint/ns
+    blog-image :blog/image}]
+  ;; Extract blog post date and title from namespace name
+  ;; Render blog page template header with date, title, and blog-image
+
+  ;; Call content function to render blog content
+  (let [content-fn (ns-resolve ns-sym 'content)]
+    (content-fn))
+  
+  ;; Render blog page template footer
+  )
+```
+
+The `GET-blog-post` function renders the page header and footer, and in between uses the `:endpoint/ns` attribute which fsr automatically adds to the request map to find the  namespace matching the URI, and then calls the `content` function within it.
+
+The comments indicate that the `GET-blog-post` template function will parse the namespace name (`my-app.routes.blog.2025-01-01_Another_fine_day`) to extract the blog post date and title, assuming your blog file namespaces have been named appropriately.
+
+Also note that you can pass attributes to the template handler function from the URI namespace metadata (such as `:blog/image` in the example above), because fsr adds all of the namespace metadata to the handler request.
 
 # Static Site Generation
 You can also use fsr to generate a static site, if all your endpoint functions use HTTP GET methods (static sites only support GET methods).
