@@ -23,7 +23,9 @@ io.github.esp1/fsr {:git/tag "v1.0.0", :git/sha "7cad5cb"}
       (wrap-fs-router "src/my_app/routes")))
 ```
 
-3. Now just place `.clj` source files under your fsr root filesystem path, and add a bit of namespace metadata to point to your handler functions. For example, assuming your fsr root filesystem path is `src/my_app/routes`, here is a `src/my_app/routes/index.clj` file that renders the homepage for the root `/` URL:  
+3. Now just place `.clj` source files under your fsr root filesystem path, and add a bit of namespace metadata to point to your handler functions. For example, here is a `src/my_app/routes/index.clj` file that renders the homepage for the root `/` URL:  
+- `src/my_app/routes/` (fsr root filesystem path)  
+  - `index.clj`:  
 ```clojure
 (ns my-app.routes.index
   {:endpoint/http {:get 'GET-homepage}})
