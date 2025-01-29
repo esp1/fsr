@@ -160,8 +160,7 @@
    The returned endpoint metadata will contain a `:endpoint/ns` key whose value is the symbol for this namespace,
    along with any other metadata associated with the namespace."
   {:malli/schema [:=> [:catn
-                       [:ns-sym [:maybe symbol?]]
-                       [:ns-prefix string?]]
+                       [:ns-sym [:maybe symbol?]]]
                   [:maybe map?]]}
   [ns-sym]
   (when ns-sym
