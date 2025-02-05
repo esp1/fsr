@@ -7,7 +7,7 @@
    so that they can be included in static site generation."
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
-            [esp1.fsr.core :refer [clj->ns-sym get-root-ns-prefix ns-sym->uri]]
+            [esp1.fsr.core :refer [clj->ns-sym clojure-file-ext get-root-ns-prefix ns-sym->uri]]
             [esp1.fsr.ring :refer [uri->endpoint-fn]]))
 
 (def ^:dynamic tracked-uris-atom
@@ -28,7 +28,7 @@
   "Return all endpoint namespace symbols under the given root dir."
   [root-dir]
   (->> (file-seq (io/file root-dir))
-       (filter #(string/ends-with? (.getName %) ".clj"))
+       (filter clojure-file-ext)
        (map #(clj->ns-sym %))
        (keep identity)))
 

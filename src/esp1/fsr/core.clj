@@ -7,13 +7,25 @@
             [clojure.string :as string]
             [esp1.fsr.schema :refer [file?]]))
 
+(defn clojure-file-ext
+  "Returns the extension of the given file or filename if it is .clj or .cljc.
+   Otherwise returns nil."
+  [file-or-filename]
+  (let [filename (if (instance? java.io.File file-or-filename)
+                   (.getName file-or-filename)
+                   file-or-filename)]
+    (re-find #"\.cljc?$" filename)))
+
 (defn file-ns-name-components
   "If this file is part of a clojure namespace,
    returns a vector of the namespace name components associated with this file.
    If this file is not part of a clojure namespace, returns nil."
+  {:malli/schema [:=> [:catn
+                       [:file file?]]
+                  [:maybe file?]]}
   [f]
   (let [[clj-file] (->> (file-seq f)
-                        (filter #(string/ends-with? (.getPath %) ".clj")))]
+                        (filter clojure-file-ext))]
     (when clj-file
       (let [[_ns ns-name] (edn/read (java.io.PushbackReader. (io/reader clj-file)))]
         (->> (string/split (str ns-name) #"\.")
@@ -25,6 +37,9 @@
    returns the associated root namespace prefix string.
    It does this by scanning the root fileystem path for a clojure file,
    and returning the portion of the namepace corresponding to the filesystem path."
+  {:malli/schema [:=> [:catn
+                       [:root-fs-path string?]]
+                  [string?]]}
   [root-fs-path]
   (string/join "." (file-ns-name-components (io/file root-fs-path))))
 
@@ -73,10 +88,11 @@
         (->> (.listFiles cwd)
              (map (fn [f]
                     (let [match-str (or (last (file-ns-name-components f))
-                                        (as-> (.getName f) match-str
-                                          (cond-> match-str
-                                            (string/ends-with? match-str ".clj") ; if this file is a clojure file, strip the .clj extension
-                                            (subs 0 (- (count match-str) (count ".clj"))))))
+                                        (let [match-str (.getName f)]
+                                          ;; if this file is a clojure file, strip the extension
+                                          (if-let [ext (clojure-file-ext match-str)]
+                                            (subs match-str 0 (- (count match-str) (count ext)))
+                                            match-str)))
                           [match-pattern param-names] (filename-match-info match-str)
                           [_ & matches] (re-matches (re-pattern match-pattern) uri)]
                       (when matches
@@ -95,11 +111,12 @@
                                   (if (and
                                        ;; if there is only one file match
                                        (= 1 (count file-match-infos))
-                                       ;; and none of the directory matches contain an index.clj
+                                       ;; and none of the directory matches contain an index.clj or index.cljc
                                        (empty? (filter (fn [[_ f _]]
-                                                         (.exists (io/file f "index.clj")))
+                                                         (or (.exists (io/file f "index.clj"))
+                                                             (.exists (io/file f "index.cljc"))))
                                                        dir-match-infos)))
-                                    
+
                                     ;; then return the file match-info
                                     (first file-match-infos)
 
@@ -111,6 +128,13 @@
    If a matching filesystem file or dir is found, returns a vector 2-tuple
    of the matched file/dir, and a map of matched path parameters.
    If no matching filesystem file or dir is found, returns nil."
+  {:malli/schema [:=> [:catn
+                       [:uri string?]
+                       [:cwd file?]]
+                  [:maybe
+                   [:catn
+                    [:file file?]
+                    [:path-params map?]]]]}
   [uri cwd]
   (loop [uri (string/replace uri #"^/" "") ; strip leading /
          f cwd
@@ -122,13 +146,22 @@
         [f path-params]))))
 
 (defn file->clj
+  "Returns the Clojure .clj file corresponding to the given java.io.File argument.
+   If the file argument is a Clojure file, returns the file.
+   If the file argument is a directory, returns the index.clj or index.cljc file under that directory if it exists.
+   Otherwise returns nil."
+  {:malli/schema [:=> [:catn
+                       [:file file?]]
+                  [:maybe file?]]}
   [f]
   (let [f (if (.isDirectory f)
-            (io/file f "index.clj")
+            (cond
+              (.exists (io/file f "index.clj")) (io/file f "index.clj")
+              (.exists (io/file f "index.cljc")) (io/file f "index.cljc"))
             f)]
     (when (and (.exists f)
                (.isFile f)
-               (string/ends-with? (.getName f) ".clj"))
+               (clojure-file-ext f))
       f)))
 
 (defn clj->ns-sym
@@ -137,7 +170,7 @@
                        [:path [:maybe file?]]]
                   [:maybe symbol?]]}
   [file]
-  (when (and file (.exists file) (.isFile file) (string/ends-with? (.getName file) ".clj"))
+  (when (and file (.exists file) (.isFile file) (clojure-file-ext file))
     (let [[_ns ns-name] (edn/read (java.io.PushbackReader. (io/reader file)))]
       ns-name)))
 
@@ -170,14 +203,15 @@
 
 (defn resolve-sym
   "Resolves the given symbol and returns it.
-   If the given symbol is not namespaced, the default namespace is used to resolve the symbol.
-   If the first argument is not a symbol, it is returned as is."
+   If the given symbol is not namespaced, the default namespace is used to resolve the symbol."
+  {:malli/schema [:=> [:catn
+                       [:symbol symbol?]
+                       [:default-ns string?]]
+                  [symbol?]]}
   [sym default-ns]
-  (if (symbol? sym)
-    (if (namespace sym)
-      (resolve sym)
-      (ns-resolve default-ns sym))
-    sym))
+  (if (namespace sym)
+    (resolve sym)
+    (ns-resolve default-ns sym)))
 
 (defn http-endpoint-fn
   "Returns the http endpoint function corresponding to the given request method (e.g. :get, :post, etc)
@@ -192,6 +226,10 @@
    and a matching endpoint function.
    
    If no function is found, returns nil."
+  {:malli/schema [:=> [:catn
+                       [:method keyword?]
+                       [:endpoint-meta map?]]
+                  [:maybe fn?]]}
   [method endpoint-meta]
   (or (resolve-sym (get-in endpoint-meta [:endpoint/http method])
                    (:endpoint/ns endpoint-meta))
