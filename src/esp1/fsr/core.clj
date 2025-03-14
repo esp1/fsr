@@ -10,6 +10,9 @@
 (defn clojure-file-ext
   "Returns the extension of the given file or filename if it is .clj or .cljc.
    Otherwise returns nil."
+  {:malli/schema [:=> [:catn
+                       [:file-or-filename [:or file? string?]]]
+                  [:maybe string?]]}
   [file-or-filename]
   (let [filename (if (instance? java.io.File file-or-filename)
                    (.getName file-or-filename)
@@ -55,7 +58,7 @@
   {:malli/schema [:=> [:catn
                        [:filename string?]]
                   [:catn
-                   [:regex-str string?]
+                   [:regex-pattern string?]
                    [:param-names [:vector string?]]]]}
   [filename]
   (let [matcher (re-matcher #"<([^<>]+)>" filename)
@@ -80,9 +83,9 @@
                        [:uri string?]
                        [:cwd file?]]
                   [:maybe [:catn
-                           [:remaining-uri string?]
+                           [:remaining-uri [:maybe string?]]
                            [:matched-file file?]
-                           [:path-params map?]]]]}
+                           [:path-params [:map-of string? string?]]]]]}
   [uri cwd]
   (let [match-infos
         (->> (.listFiles cwd)
@@ -131,10 +134,9 @@
   {:malli/schema [:=> [:catn
                        [:uri string?]
                        [:cwd file?]]
-                  [:maybe
-                   [:catn
-                    [:file file?]
-                    [:path-params map?]]]]}
+                  [:maybe [:catn
+                           [:matched-file file?]
+                           [:path-params [:map-of string? string?]]]]]}
   [uri cwd]
   (loop [uri (string/replace uri #"^/" "") ; strip leading /
          f cwd
@@ -167,7 +169,7 @@
 (defn clj->ns-sym
   "Returns the namespace name symbol for the clojure file."
   {:malli/schema [:=> [:catn
-                       [:path [:maybe file?]]]
+                       [:clj-file [:maybe file?]]]
                   [:maybe symbol?]]}
   [file]
   (when (and file (.exists file) (.isFile file) (clojure-file-ext file))
@@ -178,7 +180,7 @@
   "Converts a given namespace name into a URI.
    If a `ns-prefix` is provided, it will be stripped from the URI."
   {:malli/schema [:=> [:catn
-                       [:path [:maybe symbol?]]
+                       [:ns-sym [:maybe symbol?]]
                        [:ns-prefix string?]]
                   [:maybe string?]]}
   [ns-sym ns-prefix]
@@ -194,7 +196,7 @@
    along with any other metadata associated with the namespace."
   {:malli/schema [:=> [:catn
                        [:ns-sym [:maybe symbol?]]]
-                  [:maybe map?]]}
+                  [:maybe [:map-of keyword? any?]]]}
   [ns-sym]
   (when ns-sym
     (require ns-sym)
@@ -205,9 +207,9 @@
   "Resolves the given symbol and returns it.
    If the given symbol is not namespaced, the default namespace is used to resolve the symbol."
   {:malli/schema [:=> [:catn
-                       [:symbol symbol?]
-                       [:default-ns string?]]
-                  [symbol?]]}
+                       [:sym symbol?]
+                       [:default-ns symbol?]]
+                  [:maybe fn?]]}
   [sym default-ns]
   (if (namespace sym)
     (resolve sym)
@@ -228,7 +230,7 @@
    If no function is found, returns nil."
   {:malli/schema [:=> [:catn
                        [:method keyword?]
-                       [:endpoint-meta map?]]
+                       [:endpoint-meta [:map-of keyword? any?]]]
                   [:maybe fn?]]}
   [method endpoint-meta]
   (or (resolve-sym (get-in endpoint-meta [:endpoint/http method])
