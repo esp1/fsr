@@ -4,15 +4,15 @@
    that take advantage of fsr's namespace metadata and route resolution functionality."
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [clojure.string :as string]
-            [esp1.fsr.schema :refer [file?]]))
+            [clojure.string :as str]
+            [esp1.fsr.schema :refer [dir-path? file? filename?]]))
 
 (defn clojure-file-ext
   "Returns the extension of the given file or filename if it is .clj or .cljc.
    Otherwise returns nil."
-  {:malli/schema [:=> [:catn
-                       [:file-or-filename [:or file? string?]]]
-                  [:maybe string?]]}
+  {:malli/schema [:=> [:cat
+                       [:or file? filename?]]
+                  [:maybe [string? {:title "File extension"}]]]}
   [file-or-filename]
   (let [filename (if (instance? java.io.File file-or-filename)
                    (.getName file-or-filename)
@@ -23,15 +23,15 @@
   "If this file is part of a clojure namespace,
    returns a vector of the namespace name components associated with this file.
    If this file is not part of a clojure namespace, returns nil."
-  {:malli/schema [:=> [:catn
-                       [:file file?]]
-                  [:maybe file?]]}
+  {:malli/schema [:=> [:cat
+                       file?]
+                  [:maybe [:sequential [string? {:title "Namespace name component"}]]]]}
   [f]
   (let [[clj-file] (->> (file-seq f)
                         (filter clojure-file-ext))]
     (when clj-file
       (let [[_ns ns-name] (edn/read (java.io.PushbackReader. (io/reader clj-file)))]
-        (->> (string/split (str ns-name) #"\.")
+        (->> (str/split (str ns-name) #"\.")
              (drop-last (- (.getNameCount (.toPath clj-file))
                            (.getNameCount (.toPath f)))))))))
 
@@ -40,11 +40,11 @@
    returns the associated root namespace prefix string.
    It does this by scanning the root fileystem path for a clojure file,
    and returning the portion of the namepace corresponding to the filesystem path."
-  {:malli/schema [:=> [:catn
-                       [:root-fs-path string?]]
-                  [string?]]}
+  {:malli/schema [:=> [:cat
+                       [dir-path? {:title "Root filesystem path"}]]
+                  [string? {:title "Root namespace prefix"}]]}
   [root-fs-path]
-  (string/join "." (file-ns-name-components (io/file root-fs-path))))
+  (str/join "." (file-ns-name-components (io/file root-fs-path))))
 
 (defn- filename-match-info
   "Given a filename,
@@ -55,11 +55,11 @@
    to match a parameter value that does not contain a slash `/` character,
    or double angle brackets `<<` `>>`
    to match a parameter value that may contain a slash `/` character."
-  {:malli/schema [:=> [:catn
-                       [:filename string?]]
-                  [:catn
-                   [:regex-pattern string?]
-                   [:param-names [:vector string?]]]]}
+  {:malli/schema [:=> [:cat
+                       filename?]
+                  [:cat
+                   [string? {:title "Regex pattern"}]
+                   [:vector [string? {:title "Parameter name"}]]]]}
   [filename]
   (let [matcher (re-matcher #"<([^<>]+)>" filename)
         param-names (loop [[_ param-name] (re-find matcher)
@@ -69,8 +69,8 @@
                         param-names))]
     [(str "^"
           (-> filename
-              (string/replace #"<<([^<>]+)>>" "(.*)")
-              (string/replace #"<([^<>]+)>" "([^/]*)"))
+              (str/replace #"<<([^<>]+)>>" "(.*)")
+              (str/replace #"<([^<>]+)>" "([^/]*)"))
           "(/(.*))?$")
      param-names]))
 
@@ -79,13 +79,13 @@
    If a match is found, the matched file is returned, along with a map of any matched path parameters, and the remaining unmatched portion of the URI.
    If no match is found, returns nil.
    If multiple matches are found, throws an error."
-  {:malli/schema [:=> [:catn
-                       [:uri string?]
-                       [:cwd file?]]
-                  [:maybe [:catn
-                           [:remaining-uri [:maybe string?]]
-                           [:matched-file file?]
-                           [:path-params [:map-of string? string?]]]]]}
+  {:malli/schema [:=> [:cat
+                       [string? {:title "URI"}]
+                       [file? {:title "CWD"}]]
+                  [:maybe [:cat
+                           [:maybe string? {:title "Remaining URI"}]
+                           [file? {:title "Matched file"}]
+                           [:map-of {:title "Path parameters"} string? string?]]]]}
   [uri cwd]
   (let [match-infos
         (->> (.listFiles cwd)
@@ -131,14 +131,16 @@
    If a matching filesystem file or dir is found, returns a vector 2-tuple
    of the matched file/dir, and a map of matched path parameters.
    If no matching filesystem file or dir is found, returns nil."
-  {:malli/schema [:=> [:catn
-                       [:uri string?]
-                       [:cwd file?]]
-                  [:maybe [:catn
-                           [:matched-file file?]
-                           [:path-params [:map-of string? string?]]]]]}
+  {:malli/schema [:=> [:cat
+                       [string? {:title "URI"}]
+                       [file? {:title "CWD"}]]
+                  [:maybe [:cat
+                           [file? {:title "Matched file"}]
+                           [:map-of
+                            [string? {:title "Path parameter name"}]
+                            [string? {:title "Path parameter value"}]]]]]}
   [uri cwd]
-  (loop [uri (string/replace uri #"^/" "") ; strip leading /
+  (loop [uri (str/replace uri #"^/" "") ; strip leading /
          f cwd
          path-params {}]
     (if-let [[uri1 f1 path-params1] (and uri (step-match uri f))]
@@ -152,9 +154,9 @@
    If the file argument is a Clojure file, returns the file.
    If the file argument is a directory, returns the index.clj or index.cljc file under that directory if it exists.
    Otherwise returns nil."
-  {:malli/schema [:=> [:catn
-                       [:file file?]]
-                  [:maybe file?]]}
+  {:malli/schema [:=> [:cat
+                       file?]
+                  [:maybe [file? {:title "Clojure file"}]]]}
   [f]
   (let [f (if (.isDirectory f)
             (cond
@@ -168,9 +170,9 @@
 
 (defn clj->ns-sym
   "Returns the namespace name symbol for the clojure file."
-  {:malli/schema [:=> [:catn
-                       [:clj-file [:maybe file?]]]
-                  [:maybe symbol?]]}
+  {:malli/schema [:=> [:cat
+                       [:maybe [file? {:title "Clojure file"}]]]
+                  [:maybe [symbol? {:title "Namespace symbol"}]]]}
   [file]
   (when (and file (.exists file) (.isFile file) (clojure-file-ext file))
     (let [[_ns ns-name] (edn/read (java.io.PushbackReader. (io/reader file)))]
@@ -178,24 +180,24 @@
 
 (defn ns-sym->uri
   "Converts a given namespace name into a URI.
-   If a `ns-prefix` is provided, it will be stripped from the URI."
-  {:malli/schema [:=> [:catn
-                       [:ns-sym [:maybe symbol?]]
-                       [:ns-prefix string?]]
-                  [:maybe string?]]}
+   If a namespace prefix is provided, it will be stripped from the URI."
+  {:malli/schema [:=> [:cat
+                       [:maybe [symbol? {:title "Namespace symbol"}]]
+                       [string? {:title "Namespace prefix"}]]
+                  [:maybe [string? {:title "URI"}]]]}
   [ns-sym ns-prefix]
   (when ns-sym
     (-> (str ns-sym)
-        (string/replace (re-pattern (str "^" ns-prefix "\\.")) "") ; strip ns prefix
-        (string/replace #"(^|\.)index$" "") ; strip trailing index
-        (string/replace "." "/")))) ; convert . to /
+        (str/replace (re-pattern (str "^" ns-prefix "\\.")) "") ; strip ns prefix
+        (str/replace #"(^|\.)index$" "") ; strip trailing index
+        (str/replace "." "/")))) ; convert . to /
 
 (defn ns-endpoint-meta
   "Returns the endpoint metadata associated with the given namespace symbol, or nil if no such namespace is found.
    The returned endpoint metadata will contain a `:endpoint/ns` key whose value is the symbol for this namespace,
    along with any other metadata associated with the namespace."
-  {:malli/schema [:=> [:catn
-                       [:ns-sym [:maybe symbol?]]]
+  {:malli/schema [:=> [:cat
+                       [:maybe [symbol? {:title "Namespace symbol"}]]]
                   [:maybe [:map-of keyword? any?]]]}
   [ns-sym]
   (when ns-sym
@@ -229,9 +231,9 @@
    
    If no function is found, returns nil."
   {:malli/schema [:=> [:catn
-                       [:method keyword?]
-                       [:endpoint-meta [:map-of keyword? any?]]]
-                  [:maybe fn?]]}
+                       [keyword? {:title "HTTP method"}]
+                       [map? {:title "Endpoint metadata map"}]]
+                  [:maybe [fn? {:title "Endpoint function"}]]]}
   [method endpoint-meta]
   (or (resolve-sym (get-in endpoint-meta [:endpoint/http method])
                    (:endpoint/ns endpoint-meta))

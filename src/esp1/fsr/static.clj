@@ -6,7 +6,7 @@
    Also provides a `track-uri` function that can be used to track dynamically constructed URIs
    so that they can be included in static site generation."
   (:require [clojure.java.io :as io]
-            [clojure.string :as string]
+            [clojure.string :as str]
             [esp1.fsr.core :refer [clj->ns-sym clojure-file-ext get-root-ns-prefix ns-sym->uri]]
             [esp1.fsr.ring :refer [uri->endpoint-fn]]))
 
@@ -73,9 +73,9 @@
             (generate-file (io/file publish-dir uri "index.html") endpoint-fn uri))))
       ;; Generate tracked URIs
       (doseq [uri @tracked-uris-atom]
-        (let [relative-uri (string/replace uri #"^/" "")
+        (let [relative-uri (str/replace uri #"^/" "")
               endpoint-fn (uri->endpoint-fn :get uri root-fs-path)]
-          (generate-file (io/file publish-dir (if (string/ends-with? relative-uri "/")
+          (generate-file (io/file publish-dir (if (str/ends-with? relative-uri "/")
                                                 (str relative-uri "index.html")
                                                 relative-uri))
                          endpoint-fn uri))))))
