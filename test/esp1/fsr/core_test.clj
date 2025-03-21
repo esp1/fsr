@@ -1,10 +1,32 @@
 (ns esp1.fsr.core-test
   (:require
    [clojure.java.io :as io]
-   [clojure.test :refer [deftest is testing]]
-   [clojure.test.check.generators :as tcg]
+   [clojure.test :refer [deftest is testing use-fixtures]]
+   [clojure.test.check.generators :as gen]
    [esp1.fsr.core :refer [clojure-file-ext file->clj uri->file+params]]
-   [malli.generator :as mg]))
+   [esp1.fsr.schema :as schema]
+   [malli.core :as m]
+   [malli.dev :as mdev]
+   [malli.generator :as mg]
+   [malli.registry :as mr]))
+
+(use-fixtures :once
+  (fn [f]
+    (mr/set-default-registry!
+     (merge
+      (m/comparator-schemas)
+      (m/type-schemas)
+      (m/sequence-schemas)
+      (m/base-schemas)
+      {:filename schema/filename?
+       :dirname schema/dirname?
+       :dir-path schema/dir-path?
+       :file-path schema/file-path?
+       :file schema/file?}))
+    (mdev/start!)
+    (f)
+    (mdev/stop!)
+    (mr/set-default-registry! m/default-registry)))
 
 (deftest non-clj-file
   (is (= [(io/file "test/bar/test.txt") {}]
@@ -40,7 +62,7 @@
     (let [args-schema (-> #'clojure-file-ext meta :malli/schema second)
           args-gen (mg/generator args-schema)]
       (dotimes [_ 100]
-        (let [[filename] (tcg/generate args-gen)
+        (let [[filename] (gen/generate args-gen)
               result (clojure-file-ext filename)]
           (is (or (nil? result)
                   (re-matches #"\.cljc?$" result))))))))
