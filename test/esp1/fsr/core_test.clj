@@ -4,7 +4,7 @@
    [clojure.test :refer [deftest is testing use-fixtures]]
    [clojure.test.check.generators :as gen]
    [esp1.fsr.core :refer [clojure-file-ext file->clj uri->file+params]]
-   [esp1.fsr.schema]
+   [esp1.fsr.schema :as fsr-schema]
    [malli.core :as m]
    [malli.dev :as mdev]
    [malli.generator :as mg]
@@ -13,7 +13,12 @@
 (use-fixtures :once
   (fn [f]
     (mr/set-default-registry!
-     esp1.fsr.schema/registry)
+     (merge
+      (m/comparator-schemas)
+      (m/type-schemas)
+      (m/sequence-schemas)
+      (m/base-schemas)
+      (fsr-schema/file-schemas)))
     (mdev/start!)
     (f)
     (mdev/stop!)
