@@ -1,0 +1,2 @@
+{:tasks {codox {:doc "Generate API documentation with Codox."
+                :task (clojure "-X:codox")}}}

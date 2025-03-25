@@ -1,6 +1,54 @@
 {
   "lockfile_version": "1",
   "packages": {
+    "babashka@latest": {
+      "last_modified": "2025-03-11T17:52:14Z",
+      "resolved": "github:NixOS/nixpkgs/0d534853a55b5d02a4ababa1d71921ce8f0aee4c#babashka",
+      "source": "devbox-search",
+      "version": "1.12.196",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/a0hwcdrzahisvir69ga0p5wrmq3pw8c4-babashka-1.12.196",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/a0hwcdrzahisvir69ga0p5wrmq3pw8c4-babashka-1.12.196"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/i6891a011vn3q9wpxkq2wn0092g8rsr5-babashka-1.12.196",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/i6891a011vn3q9wpxkq2wn0092g8rsr5-babashka-1.12.196"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ppkms9l5zfzn0178l8dyxqra7vrb1rr7-babashka-1.12.196",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/ppkms9l5zfzn0178l8dyxqra7vrb1rr7-babashka-1.12.196"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/scmhjf743dixj5vdl16fxa5dzc7j4l2b-babashka-1.12.196",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/scmhjf743dixj5vdl16fxa5dzc7j4l2b-babashka-1.12.196"
+        }
+      }
+    },
     "clojure@latest": {
       "last_modified": "2024-07-07T07:43:47Z",
       "resolved": "github:NixOS/nixpkgs/b60793b86201040d9dee019a05089a9150d08b5b#clojure",
