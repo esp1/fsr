@@ -232,7 +232,9 @@
   {:malli/schema [:=> [:cat
                        [:keyword {:title "HTTP method"}]
                        [:map {:title "Endpoint metadata map"}]]
-                  [:maybe [:fn {:title "Endpoint function"} fn?]]]}
+                  [:maybe [:fn {:title "Endpoint function"} #(fn? (if (var? %)
+                                                                    (var-get %)
+                                                                    %))]]]}
   [method endpoint-meta]
   (or (resolve-sym (get-in endpoint-meta [:endpoint/http method])
                    (:endpoint/ns endpoint-meta))
