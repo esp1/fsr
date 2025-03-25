@@ -210,7 +210,7 @@
   {:malli/schema [:=> [:cat
                        :symbol
                        [:symbol {:title "Default namespace"}]]
-                  any?]}
+                  :any]}
   [sym default-ns]
   (if (namespace sym)
     (resolve sym)
