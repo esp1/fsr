@@ -10,7 +10,7 @@
   "Returns the extension of the given file or filename if it is .clj or .cljc.
    Otherwise returns nil."
   {:malli/schema [:=> [:cat
-                       [:or :file :filename]]
+                       [:or :file :file-name]]
                   [:maybe [:string {:title "File extension"}]]]}
   [file-or-filename]
   (let [filename (if (instance? java.io.File file-or-filename)
@@ -55,7 +55,7 @@
    or double angle brackets `<<` `>>`
    to match a parameter value that may contain a slash `/` character."
   {:malli/schema [:=> [:cat
-                       :filename]
+                       :file-name]
                   [:cat
                    [:string {:title "Regex pattern"}]
                    [:vector [:string {:title "Parameter name"}]]]]}
