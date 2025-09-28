@@ -199,3 +199,25 @@ Here is an example where we wrap the code that constructs the `:href` value with
 ```
 
 Once you track your dynamic URIs in this manner, `publish-static` will be able to generate static content for those URIs as well.
+
+# Development
+
+## Documentation Generation
+```bash
+# Generate API documentation with Codox
+bb codox
+# or
+clojure -X:codox
+```
+
+## Testing
+```bash
+# Run tests (standard Clojure test runner)
+clojure -M:dev -m clojure.test.runner
+```
+
+## Development Dependencies
+```bash
+# Start REPL with development dependencies
+clojure -M:dev
+```

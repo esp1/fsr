@@ -27,9 +27,21 @@ All functionality must be developed using Test-Driven Development with clojure.t
 ### V. API Stability & Simplicity
 Public APIs must remain stable and backward-compatible. Follow semantic versioning strictly. Design APIs to be simple and intuitive - prefer pure functions over stateful operations. Avoid premature abstraction and follow YAGNI principles. Each namespace should have a single, well-defined responsibility.
 
+### VI. Filesystem-Based Architecture
+The core architectural principle is mapping URIs to filesystem structure. URIs must correspond directly to Clojure namespace files, with dynamic path parameters supported through `<param>` (single segments) or `<<param>>` (multi-segment with slashes) syntax. This convention ensures predictable routing and maintainable code organization that mirrors web structure.
+
 ## Development Standards
 
 All code must follow standard Clojure conventions and idioms. Function names should clearly indicate their purpose and side effects. Prefer immutable data structures and pure functions. Use meaningful error messages and appropriate exception handling. Performance optimizations must be justified and measured.
+
+### Namespace Organization
+The library must maintain a three-namespace architecture: `esp1.fsr.core` for URI-to-file mapping logic, `esp1.fsr.ring` for web middleware integration, and `esp1.fsr.static` for static site generation. Each namespace has a single responsibility and clear boundaries.
+
+### Metadata Conventions
+Namespaces must use `:endpoint/http` metadata to map HTTP methods to handler functions. Template delegation is supported through `:endpoint/type` metadata. All namespace metadata is merged into Ring requests, enabling flexible templating and custom attributes.
+
+### Development Tooling
+Custom file-related schemas must be defined in `esp1.fsr.schema` and used consistently across the codebase. The malli-schema-expert agent is available for schema-related development tasks and should be utilized for complex schema work. Property-based testing with clojure.test.check is encouraged for complex logic validation.
 
 ## Quality Assurance
 
@@ -39,4 +51,4 @@ Code reviews must verify compliance with all principles above. New features requ
 
 This constitution supersedes all other development practices. Amendments require documentation of rationale, approval process, and migration plan for existing code. All development decisions must be evaluated against these principles. Complexity must be justified against the Zero-Dependency and Simplicity principles. Use CLAUDE.md for runtime development guidance and implementation details.
 
-**Version**: 1.0.0 | **Ratified**: 2025-01-25 | **Last Amended**: 2025-01-25
+**Version**: 1.1.0 | **Ratified**: 2025-01-25 | **Last Amended**: 2025-09-27
