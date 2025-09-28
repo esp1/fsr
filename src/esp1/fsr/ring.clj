@@ -1,12 +1,16 @@
 (ns esp1.fsr.ring
   "Provides a `wrap-fs-router` [Ring middleware](https://github.com/ring-clojure/ring/wiki/Concepts#middleware) function that resolves routes
-   from Clojure namespaces and functions in the filesystem."
+   from Clojure namespaces and functions in the filesystem.
+   
+   In development, this middleware provides dynamic routing with automatic hot-reloading.
+   In production, use `esp1.fsr.static/publish-static` to generate optimized static assets instead."
   (:require [clojure.java.io :as io]
-            [esp1.fsr.core :refer [clj->ns-sym
-                                   file->clj
-                                   http-endpoint-fn
-                                   ns-endpoint-meta
-                                   uri->file+params]]))
+            [esp1.fsr.core :as core :refer [clj->ns-sym
+                                            clear-route-cache!
+                                            file->clj
+                                            http-endpoint-fn
+                                            ns-endpoint-meta
+                                            uri->file+params]]))
 
 (defn uri->endpoint-fn
   "Returns a Ring handler function for the given HTTP method and URI endpoint
@@ -55,36 +59,72 @@
                               (assoc :endpoint/path-params path-params)))))))))
 
 (defn wrap-fs-router
-  "Ring middleware that wraps the provided handler
-   and adds the ability to respond to requests with handler functions found under the given root filesystem path via `uri->endpoint-fn`.
+  "Ring middleware for development that wraps the provided handler
+   and adds the ability to respond to requests with handler functions found under the given root filesystem path.
+   
+   This middleware provides dynamic routing with automatic hot-reloading of changed namespaces.
+   It clears the route cache on every request and reloads any changed namespaces.
+   
+   For production deployments, use `esp1.fsr.static/publish-static` instead to generate
+   optimized static assets and/or a minimal server with pre-compiled routes.
+   
    The handler function is expected to return either:
    - a Ring response map
    - a string, which fsr will use as the body of an HTTP 200 Ok response
    - nil, which fsr will translate into an HTTP 204 No Content response
-   "
-  [handler root-fs-path]
-  (fn [{:as request
-        :keys [request-method uri]}]
-    (if-let [endpoint-fn (uri->endpoint-fn request-method uri root-fs-path)]
-      ;; use endpoint-fn to generate content
-      (let [response (endpoint-fn request)]
-        (cond
-          ;; if response is a string, treat it as an HTML response
-          (string? response)
-          {:status 200
-           :headers {"Content-Type" "text/html"}
-           :body response}
+   
+   Options:
+   - :verbose? - Enable verbose logging of reloaded namespaces"
+  [handler root-fs-path & {:keys [verbose?] :or {verbose? false}}]
+  (println "FSR: Dynamic routing with hot-reload enabled")
+  (println "     Watching:" root-fs-path)
 
-          ;; if response is a map, use it as the response map
-          (map? response)
-          response
+  ;; Try to set up hot reloading if tools.namespace is available
+  (let [tracker (atom nil)
+        can-reload? (try
+                      (require 'clojure.tools.namespace.track)
+                      (require 'clojure.tools.namespace.dir)
+                      (reset! tracker ((resolve 'clojure.tools.namespace.track/tracker)))
+                      true
+                      (catch Exception _
+                        (println "Note: Install tools.namespace for hot-reload support")
+                        false))]
 
-          ;; if response is nil, send HTTP 204 No Content response
-          (nil? response)
-          {:status 204}
+    (fn [{:as request
+          :keys [request-method uri]}]
+      ;; Clear route cache on every request for development
+      (clear-route-cache!)
 
-          :else
-          (throw (Exception. "Invalid response type. Endpoint function should return a string or a response map."))))
+      ;; Reload changed namespaces if tools.namespace is available
+      (when (and can-reload? @tracker)
+        (let [scan-fn (resolve 'clojure.tools.namespace.dir/scan)
+              new-tracker (swap! tracker scan-fn (io/file root-fs-path))
+              changed (get new-tracker :clojure.tools.namespace.track/load [])]
+          (when (seq changed)
+            (when verbose? (println "Reloading:" changed))
+            (doseq [ns-sym changed]
+              (require ns-sym :reload)))))
 
-      ;; else Not Found
-      (handler request))))
+      (if-let [endpoint-fn (uri->endpoint-fn request-method uri root-fs-path)]
+        ;; use endpoint-fn to generate content
+        (let [response (endpoint-fn request)]
+          (cond
+            ;; if response is a string, treat it as an HTML response
+            (string? response)
+            {:status 200
+             :headers {"Content-Type" "text/html"}
+             :body response}
+
+            ;; if response is a map, use it as the response map
+            (map? response)
+            response
+
+            ;; if response is nil, send HTTP 204 No Content response
+            (nil? response)
+            {:status 204}
+
+            :else
+            (throw (Exception. "Invalid response type. Endpoint function should return a string or a response map."))))
+
+        ;; else Not Found
+        (handler request)))))

@@ -6,6 +6,14 @@
             [clojure.java.io :as io]
             [clojure.string :as str]))
 
+;; Route cache for performance
+(def ^:private route-cache (atom {}))
+
+(defn clear-route-cache!
+  "Clear the route cache - useful for development mode with hot reloading"
+  []
+  (reset! route-cache {}))
+
 (defn clojure-file-ext
   "Returns the extension of the given file or filename if it is .clj or .cljc.
    Otherwise returns nil."
