@@ -5,6 +5,7 @@
    In development, this middleware provides dynamic routing with automatic hot-reloading.
    In production, use `esp1.fsr.static/publish-static` to generate optimized static assets instead."
   (:require [clojure.java.io :as io]
+            [esp1.fsr.cache :as cache]
             [esp1.fsr.core :as core :refer [clj->ns-sym
                                             clear-route-cache!
                                             file->clj
@@ -92,6 +93,14 @@
 
     (fn [{:as request
           :keys [request-method uri]}]
+      ;; Show cache stats before clearing (if verbose)
+      (when verbose?
+        (let [metrics (cache/get-metrics)]
+          (println (format "Cache stats: %d hits, %d misses, hit-rate: %.2f%%"
+                           (:hits metrics)
+                           (:misses metrics)
+                           (* 100.0 (:hit-rate metrics))))))
+
       ;; Clear route cache on every request for development
       (clear-route-cache!)
 

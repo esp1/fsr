@@ -4,15 +4,14 @@
    that take advantage of fsr's namespace metadata and route resolution functionality."
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [clojure.string :as str]))
-
-;; Route cache for performance
-(def ^:private route-cache (atom {}))
+            [clojure.string :as str]
+            [esp1.fsr.cache :as cache]))
 
 (defn clear-route-cache!
-  "Clear the route cache - useful for development mode with hot reloading"
+  "Clear the route cache - useful for development mode with hot reloading.
+   Delegates to the cache module."
   []
-  (reset! route-cache {}))
+  (cache/clear!))
 
 (defn clojure-file-ext
   "Returns the extension of the given file or filename if it is .clj or .cljc.
@@ -133,8 +132,9 @@
                                     ;; otherwise throw an exception
                                     (throw (Exception. (str "URI '" uri "' has multiple matches in " (.getPath cwd) ": " (pr-str match-infos)))))))))
 
-(defn uri->file+params
-  "Resolves the given URI to a filesystem file or dir in the given current working directory.
+(defn- uri->file+params-uncached
+  "Internal uncached version of route resolution.
+   Resolves the given URI to a filesystem file or dir in the given current working directory.
    If a matching filesystem file or dir is found, returns a vector 2-tuple
    of the matched file/dir, and a map of matched path parameters.
    If no matching filesystem file or dir is found, returns nil."
@@ -155,6 +155,37 @@
       (when (and (empty? uri)
                  (.exists f))
         [f path-params]))))
+
+(defn uri->file+params
+  "Cached version of route resolution.
+   Resolves the given URI to a filesystem file or dir in the given current working directory.
+   Uses caching to avoid repeated filesystem operations for performance.
+   If a matching filesystem file or dir is found, returns a vector 2-tuple
+   of the matched file/dir, and a map of matched path parameters.
+   If no matching filesystem file or dir is found, returns nil."
+  {:malli/schema [:=> [:cat
+                       [:string {:title "URI"}]
+                       [:file {:title "CWD"}]]
+                  [:maybe [:cat
+                           [:file {:title "Matched file"}]
+                           [:map-of
+                            [:string {:title "Path parameter name"}]
+                            [:string {:title "Path parameter value"}]]]]]}
+  [uri cwd]
+  (let [root-path (.getPath cwd)]
+    ;; Try to get from cache first
+    (if-let [cached-entry (cache/get uri root-path)]
+      ;; Cache hit - reconstruct result from cached entry
+      (let [resolved-file (io/file (:resolved-path cached-entry))
+            params (:params cached-entry)]
+        [resolved-file params])
+      ;; Cache miss - perform resolution and cache result
+      (when-let [[resolved-file params] (uri->file+params-uncached uri cwd)]
+        (let [resolved-path (.getPath resolved-file)]
+          ;; Store in cache
+          (cache/put! uri root-path resolved-path params)
+          ;; Return result
+          [resolved-file params])))))
 
 (defn file->clj
   "Returns the Clojure .clj file corresponding to the given java.io.File argument.

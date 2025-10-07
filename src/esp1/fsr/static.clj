@@ -60,13 +60,19 @@
 
 (defn publish-static
   "Finds all HTTP GET endpoint functions in root-fs-path, invokes them for all known URIs, and publishes their results to publish-dir.
-   Known URIs are either non-parameterized URIs, or URIs tracked with `track-uri` and collected in `tracked-uris-atom`."
+   Known URIs are either non-parameterized URIs, or URIs tracked with `track-uri` and collected in `tracked-uris-atom`.
+
+   Clears the cache before generation to ensure fresh content, then allows caching during generation for performance."
   [root-fs-path publish-dir]
   {:pre [(and root-fs-path publish-dir)]}
+  ;; Clear cache before static generation to ensure fresh content
+  (esp1.fsr.core/clear-route-cache!)
+
   (binding [tracked-uris-atom (atom #{})]
     (let [ns-syms (endpoint-ns-syms root-fs-path)
           uris (map #(ns-sym->uri % (get-root-ns-prefix root-fs-path)) ns-syms)]
       ;; Generate non-parameterized endpoints (& collect tracked URIs in the process)
+      ;; Cache is active during generation for performance
       (doseq [uri uris]
         (when-not (re-find #"<[^/>]*>" uri) ; filter out parameterized endpoint URIs
           (when-let [endpoint-fn (uri->endpoint-fn :get uri root-fs-path)]
@@ -78,4 +84,8 @@
           (generate-file (io/file publish-dir (if (str/ends-with? relative-uri "/")
                                                 (str relative-uri "index.html")
                                                 relative-uri))
-                         endpoint-fn uri))))))
+                         endpoint-fn uri)))
+
+      ;; Clear cache after generation to free memory
+      (esp1.fsr.core/clear-route-cache!)
+      (println "Static generation complete. Cache cleared."))))
