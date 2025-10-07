@@ -1,10 +1,11 @@
 (ns esp1.fsr.ring
   "Provides a `wrap-fs-router` [Ring middleware](https://github.com/ring-clojure/ring/wiki/Concepts#middleware) function that resolves routes
    from Clojure namespaces and functions in the filesystem.
-   
+
    In development, this middleware provides dynamic routing with automatic hot-reloading.
    In production, use `esp1.fsr.static/publish-static` to generate optimized static assets instead."
   (:require [clojure.java.io :as io]
+            [clojure.string :as str]
             [esp1.fsr.cache :as cache]
             [esp1.fsr.core :as core :refer [clj->ns-sym
                                             clear-route-cache!
@@ -62,34 +63,43 @@
 (defn wrap-fs-router
   "Ring middleware for development that wraps the provided handler
    and adds the ability to respond to requests with handler functions found under the given root filesystem path.
-   
+
    This middleware provides dynamic routing with automatic hot-reloading of changed namespaces.
    It clears the route cache on every request and reloads any changed namespaces.
-   
+
    For production deployments, use `esp1.fsr.static/publish-static` instead to generate
    optimized static assets and/or a minimal server with pre-compiled routes.
-   
+
    The handler function is expected to return either:
    - a Ring response map
    - a string, which fsr will use as the body of an HTTP 200 Ok response
    - nil, which fsr will translate into an HTTP 204 No Content response
-   
-   Options:
-   - :verbose? - Enable verbose logging of reloaded namespaces"
-  [handler root-fs-path & {:keys [verbose?] :or {verbose? false}}]
-  (println "FSR: Dynamic routing with hot-reload enabled")
-  (println "     Watching:" root-fs-path)
 
-  ;; Try to set up hot reloading if tools.namespace is available
+   Options:
+   - :hot-reload? - Enable hot-reloading of changed namespaces (default: true, or set via fsr.hot-reload system property)
+   - :verbose? - Enable verbose logging of reloaded namespaces"
+  [handler root-fs-path & {:keys [hot-reload? verbose?]
+                           :or {hot-reload? (not= "false" (System/getProperty "fsr.hot-reload"))
+                                verbose? false}}]
+  (println "FSR: Dynamic routing enabled")
+  (println "     Watching:" root-fs-path)
+  (println "     Hot-reload:" (if hot-reload? "enabled" "disabled"))
+
+  ;; Try to set up hot reloading if tools.namespace is available and hot-reload is enabled
   (let [tracker (atom nil)
-        can-reload? (try
-                      (require 'clojure.tools.namespace.track)
-                      (require 'clojure.tools.namespace.dir)
-                      (reset! tracker ((resolve 'clojure.tools.namespace.track/tracker)))
-                      true
-                      (catch Exception _
-                        (println "Note: Install tools.namespace for hot-reload support")
-                        false))]
+        can-reload? (and hot-reload?
+                         (try
+                           (require 'clojure.tools.namespace.track)
+                           (require 'clojure.tools.namespace.dir)
+                           (require 'clojure.tools.namespace.find)
+                           (reset! tracker ((resolve 'clojure.tools.namespace.track/tracker)))
+                           true
+                           (catch Exception _
+                             (println "Note: Install tools.namespace for hot-reload support")
+                             false)))]
+
+    (when (and hot-reload? (not can-reload?))
+      (println "Warning: Hot-reload requested but tools.namespace not available"))
 
     (fn [{:as request
           :keys [request-method uri]}]
@@ -105,14 +115,24 @@
       (clear-route-cache!)
 
       ;; Reload changed namespaces if tools.namespace is available
-      (when (and can-reload? @tracker)
-        (let [scan-fn (resolve 'clojure.tools.namespace.dir/scan)
-              new-tracker (swap! tracker scan-fn (io/file root-fs-path))
-              changed (get new-tracker :clojure.tools.namespace.track/load [])]
-          (when (seq changed)
-            (when verbose? (println "Reloading:" changed))
-            (doseq [ns-sym changed]
-              (require ns-sym :reload)))))
+      (when can-reload?
+        (try
+          (let [scan-dirs-fn (resolve 'clojure.tools.namespace.dir/scan-dirs)
+                new-tracker (swap! tracker scan-dirs-fn [(io/file root-fs-path)])
+                changed (get new-tracker :clojure.tools.namespace.track/load [])]
+            (when (seq changed)
+              (when verbose?
+                (println (format "Hot-reload: Reloading %d namespace%s: %s"
+                                 (count changed)
+                                 (if (= 1 (count changed)) "" "s")
+                                 (str/join ", " changed))))
+              (doseq [ns-sym changed]
+                (try
+                  (require ns-sym :reload)
+                  (catch Exception e
+                    (println (format "Error reloading namespace %s: %s" ns-sym (.getMessage e))))))))
+          (catch Exception e
+            (println "Error during hot-reload scan:" (.getMessage e)))))
 
       (if-let [endpoint-fn (uri->endpoint-fn request-method uri root-fs-path)]
         ;; use endpoint-fn to generate content
