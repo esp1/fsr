@@ -1,4 +1,6 @@
 {:tasks {codox {:doc "Generate API documentation with Codox."
                 :task (clojure "-X:codox")}
+         nrepl {:doc "Start nrepl server for AI to connect to"
+                :task (clojure "-M:nrepl")}
          test {:doc "Run tests."
                :task (clojure "-M:test")}}}

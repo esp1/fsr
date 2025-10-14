@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [],
+    "deny": [
+      "Bash",
+      "Edit",
+      "Glob",
+      "Grep",
+      "LS",
+      "MultiEdit",
+      "NotebookEdit",
+      "NotebookRead",
+      "Read",
+      "Task",
+      "TodoRead",
+      "TodoWrite",
+      "Write"
+    ]
+  }
+}
