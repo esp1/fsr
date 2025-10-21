@@ -1,9 +1,10 @@
 (ns esp1.fsr.core-test
   (:require
    [clojure.java.io :as io]
+   [clojure.string :as str]
    [clojure.test :refer [deftest is testing use-fixtures]]
    [clojure.test.check.generators :as gen]
-   [esp1.fsr.core :refer [clojure-file-ext file->clj uri->file+params]]
+   [esp1.fsr.core :refer [clojure-file-ext file->clj ns-sym->uri uri->file+params]]
    [esp1.fsr.schema :as fsr-schema]
    [malli.core :as m]
    [malli.dev :as mdev]
@@ -62,3 +63,104 @@
               result (clojure-file-ext filename)]
           (is (or (nil? result)
                   (re-matches #"\.cljc?$" result))))))))
+
+(deftest filename-match-info-test
+  (testing "filename-match-info produces valid regex patterns"
+    (let [filename-gen (gen/one-of
+                        [gen/string-alphanumeric
+                         (gen/fmap #(str "prefix_<param>_" %)
+                                   gen/string-alphanumeric)
+                         (gen/fmap #(str "<<multi-param>>_" %)
+                                   gen/string-alphanumeric)
+                         (gen/fmap #(str % "_<a>_<b>_suffix")
+                                   gen/string-alphanumeric)])]
+      (dotimes [_ 100]
+        (let [filename (gen/generate filename-gen)
+              [pattern param-names] (#'esp1.fsr.core/filename-match-info filename)]
+          ;; Property 1: Pattern should be a valid regex
+          (is (re-pattern pattern))
+
+          ;; Property 2: param-names should be a vector
+          (is (vector? param-names))
+
+          ;; Property 3: All param names should be strings
+          (is (every? string? param-names))
+
+          ;; Property 4: Pattern should start with ^ and contain trailing group
+          (is (str/starts-with? pattern "^"))
+          (is (str/includes? pattern "(/(.*))?$"))
+
+          ;; Property 5: Number of capturing groups should match param count + 2 (for trailing groups)
+          (let [capture-group-count (count (re-seq #"(?<!\\)\(" pattern))]
+            (is (= capture-group-count (+ (count param-names) 2))))))))
+
+  (testing "filename-match-info parameter extraction"
+    ;; Test specific cases with known parameters
+    ;; Note: filenames use underscores, URIs use dashes (converted elsewhere)
+    (let [[pattern params] (#'esp1.fsr.core/filename-match-info "foo_<id>_bar")]
+      (is (= params ["id"]))
+      (is (re-matches (re-pattern pattern) "foo_123_bar")))
+
+    (let [[pattern params] (#'esp1.fsr.core/filename-match-info "<<path>>_end")]
+      (is (= params ["path"]))
+      (is (re-matches (re-pattern pattern) "a/b/c_end")))
+
+    (let [[pattern params] (#'esp1.fsr.core/filename-match-info "start_<a>_middle_<b>_end")]
+      (is (= params ["a" "b"]))
+      (is (re-matches (re-pattern pattern) "start_x_middle_y_end")))))
+
+(deftest ns-sym->uri-test
+  (testing "ns-sym->uri conversion properties"
+    (let [ns-gen (gen/fmap #(symbol (str/join "." %))
+                           (gen/vector gen/string-alphanumeric 1 5))
+          prefix-gen gen/string-alphanumeric]
+      (dotimes [_ 100]
+        (let [ns-sym (gen/generate ns-gen)
+              prefix (gen/generate prefix-gen)
+              result (ns-sym->uri ns-sym prefix)]
+
+          ;; Property 1: Result should be a string or nil
+          (is (or (nil? result) (string? result)))
+
+          ;; Property 2: Result should not contain dots (converted to /)
+          (when result
+            (is (not (str/includes? result "."))))
+
+          ;; Property 3: Result may start with / if namespace doesn't match prefix
+          ;; This happens when prefix doesn't match - the leading part becomes /something
+          ;; We can't assert it never starts with / because that depends on prefix matching
+          ))))
+
+  (testing "ns-sym->uri specific conversions"
+    ;; Test prefix stripping
+    (is (= "bar/baz" (ns-sym->uri 'foo.bar.baz "foo")))
+
+    ;; Test index stripping - strips .index before converting to /
+    ;; foo.bar.index -> strip prefix -> bar.index -> strip .index -> bar
+    (is (= "bar" (ns-sym->uri 'foo.bar.index "foo")))
+    (is (= "" (ns-sym->uri 'foo.index "foo")))
+
+    ;; Test dot to slash conversion
+    (is (= "a/b/c" (ns-sym->uri 'a.b.c "")))
+
+    ;; Test nil handling
+    (is (nil? (ns-sym->uri nil "foo")))))
+
+(deftest ns-sym->uri-roundtrip-test
+  (testing "URI conversions preserve structure"
+    (let [test-cases [['foo.bar.baz "foo" "bar/baz"]
+                      ['a.b.c.index "a" "b/c"]
+                      ['x.y.index "x" "y"]
+                      ['single "" "single"]]]
+      (doseq [[ns-sym prefix expected-uri] test-cases]
+        (let [result (ns-sym->uri ns-sym prefix)]
+          (is (= expected-uri result))
+
+          ;; Property: Converting back should preserve namespace structure
+          ;; (modulo prefix and index conventions)
+          (when (and result (seq prefix))
+            (let [uri-as-ns (str/replace result "/" ".")
+                  reconstructed-ns (symbol (str prefix "." uri-as-ns))]
+              (is (or (= ns-sym reconstructed-ns)
+                      ;; or it's the index version
+                      (= ns-sym (symbol (str prefix "." uri-as-ns ".index"))))))))))))
