@@ -8,7 +8,7 @@
    4. Match and invoke handlers via middleware"
   (:require [clojure.java.io :as io]
             [clojure.test :refer [deftest is testing use-fixtures]]
-            [esp1.fsr.compile :refer [compile-routes write-compiled-routes publish]]
+            [esp1.fsr.compile :refer [compile-dynamic-routes write-compiled-routes publish]]
             [esp1.fsr.runtime :refer [load-compiled-routes wrap-compiled-routes]]))
 
 (def test-routes-dir "test/integration/routes")
@@ -28,7 +28,7 @@
 
 (deftest test-full-compilation-flow
   (testing "Compile routes from test directory"
-    (let [compiled (compile-routes test-routes-dir)]
+    (let [compiled (compile-dynamic-routes test-routes-dir)]
       (is (map? compiled))
       (is (contains? compiled :static-routes))
       (is (contains? compiled :pattern-routes))
@@ -48,7 +48,7 @@
         (is (get-in pattern-route [:methods :delete])))))
 
   (testing "Write and load compiled routes"
-    (let [compiled (compile-routes test-routes-dir)
+    (let [compiled (compile-dynamic-routes test-routes-dir)
           output-file (str temp-output-dir "/compiled-routes.edn")]
       (write-compiled-routes compiled output-file)
 
@@ -60,7 +60,7 @@
         (is (= compiled loaded)))))
 
   (testing "Invoke handlers via middleware"
-    (let [compiled (compile-routes test-routes-dir)
+    (let [compiled (compile-dynamic-routes test-routes-dir)
           fallback (fn [_] {:status 404 :body "Not found"})
           app (wrap-compiled-routes fallback {:compiled-routes compiled})]
 

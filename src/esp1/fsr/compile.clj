@@ -1,9 +1,9 @@
 (ns esp1.fsr.compile
   "Production compilation for deployment.
 
-   Provides unified compilation of both:
-   - Static HTML generation for GET routes (delegates to esp1.fsr.static)
-   - Route compilation for non-GET routes (compiled route matching)
+   Provides unified compilation of filesystem routes into production artifacts:
+   - GET routes → Static HTML files (compile-static-html)
+   - Non-GET routes → Compiled route data structures (compile-dynamic-routes)
 
    Main entry point: `publish` function for complete production builds."
   (:require [clojure.java.io :as io]
@@ -13,9 +13,112 @@
                                     get-root-ns-prefix
                                     ns-endpoint-meta
                                     ns-sym->uri]]
-            [esp1.fsr.static :as static]))
+            [esp1.fsr.ring :refer [uri->endpoint-fn]]))
 
-(defn discover-routes
+;;; ============================================================================
+;;; Static HTML Compilation (GET routes)
+;;; ============================================================================
+
+(def ^:dynamic *tracked-uris*
+  "Dynamically bound atom to hold tracked URIs during static compilation.
+   Used by `track-uri` to collect parameterized URIs for generation."
+  nil)
+
+(defn track-uri
+  "Tracks a URI for static HTML generation.
+
+   During static compilation, dynamically constructed URIs (e.g., blog post links)
+   can be tracked so they are included in the generated output.
+
+   Returns the unchanged URI, allowing inline use:
+   ```clojure
+   [:a {:href (track-uri (str \"/blog/\" post-id))} \"Read More\"]
+   ```"
+  [uri]
+  (when *tracked-uris*
+    (swap! *tracked-uris* conj uri))
+  uri)
+
+(defn- generate-html-file
+  "Invokes GET handler and writes response body to HTML file.
+
+   Accepts either:
+   - String response → writes directly
+   - Ring response map with :status 200 → writes :body
+   - Other responses → throws exception
+
+   Creates parent directories as needed."
+  [out-file endpoint-fn uri]
+  (println "Generating" (.getPath out-file))
+  (let [result (endpoint-fn {:uri uri})]
+    (when-let [output (cond
+                        (string? result)
+                        result
+
+                        (and (map? result) (= (:status result) 200))
+                        (:body result)
+
+                        :else
+                        (throw
+                         (Exception.
+                          (str "Not generating file from endpoint function " endpoint-fn
+                               " for URI " uri
+                               " because the result is not a string or a HTTP 200 Ok Ring response map: "
+                               (pr-str result)))))]
+      (.mkdirs (.getParentFile out-file))
+      (spit out-file output))))
+
+(defn compile-static-html
+  "Compiles GET routes to static HTML files.
+
+   Finds all GET endpoint functions in root-fs-path, invokes them, and writes
+   their responses to HTML files in publish-dir.
+
+   Handles two types of routes:
+   1. Non-parameterized routes (e.g., /about) - generated automatically
+   2. Parameterized routes (e.g., /blog/<id>) - must be tracked via `track-uri`
+
+   Example:
+   ```clojure
+   (compile-static-html \"src/routes\" \"dist\")
+   ```"
+  [root-fs-path publish-dir]
+  {:pre [(and root-fs-path publish-dir)]}
+  ;; Clear cache before generation to ensure fresh content
+  (esp1.fsr.core/clear-route-cache!)
+
+  (binding [*tracked-uris* (atom #{})]
+    (let [ns-syms (->> (file-seq (io/file root-fs-path))
+                       (filter clojure-file-ext)
+                       (map clj->ns-sym)
+                       (keep identity))
+          root-ns-prefix (get-root-ns-prefix root-fs-path)
+          uris (map #(ns-sym->uri % root-ns-prefix) ns-syms)]
+
+      ;; Generate non-parameterized endpoints (& collect tracked URIs in the process)
+      (doseq [uri uris]
+        (when-not (re-find #"<[^/>]*>" uri) ; filter out parameterized endpoint URIs
+          (when-let [endpoint-fn (uri->endpoint-fn :get uri root-fs-path)]
+            (generate-html-file (io/file publish-dir uri "index.html") endpoint-fn uri))))
+
+      ;; Generate tracked URIs
+      (doseq [uri @*tracked-uris*]
+        (let [relative-uri (str/replace uri #"^/" "")
+              endpoint-fn (uri->endpoint-fn :get uri root-fs-path)]
+          (generate-html-file (io/file publish-dir (if (str/ends-with? relative-uri "/")
+                                                      (str relative-uri "index.html")
+                                                      relative-uri))
+                              endpoint-fn uri)))
+
+      ;; Clear cache after generation to free memory
+      (esp1.fsr.core/clear-route-cache!)
+      (println "Static HTML compilation complete. Cache cleared."))))
+
+;;; ============================================================================
+;;; Dynamic Route Compilation (Non-GET routes)
+;;; ============================================================================
+
+(defn discover-dynamic-routes
   "Scans root-fs-path and returns all route metadata for non-GET routes.
 
    Returns a sequence of route metadata maps, each containing:
@@ -54,8 +157,11 @@
         has-params? (re-find #"<[^/>]*>" uri)]
     (assoc route-meta :route-type (if has-params? :pattern :static))))
 
-(defn compile-static-route
-  "Compiles a static route (no parameters) into a map entry.
+(defn- compile-static-dynamic-route
+  "Compiles a static (non-parameterized) dynamic route into a map entry.
+
+   'Static' here means the URI has no parameters (e.g., /api/users),
+   NOT static HTML generation. These are routes for non-GET methods.
 
    Returns a 2-tuple: [uri-string {:methods {method handler-info}}]
 
@@ -102,8 +208,11 @@
                         (str/replace #"<([^<>]+)>" "([^/]+)"))]
     [(str "^" pattern-str "$") param-names]))
 
-(defn compile-pattern-route
-  "Compiles a parameterized route into a pattern entry.
+(defn- compile-pattern-dynamic-route
+  "Compiles a parameterized dynamic route into a pattern entry.
+
+   Parameterized routes contain <param> or <<param>> in the URI template.
+   These routes require pattern matching at runtime.
 
    Returns a map containing:
    - :pattern - Regex pattern string (not compiled, for EDN serialization)
@@ -130,23 +239,26 @@
      :param-names param-names
      :methods method-map}))
 
-(defn compile-routes
-  "Main compilation function.
+(defn compile-dynamic-routes
+  "Compiles non-GET routes into runtime-efficient data structures.
 
-   Scans root-fs-path, discovers non-GET routes, classifies them, and
-   compiles into efficient data structures.
+   Scans root-fs-path, discovers non-GET routes (POST/PUT/DELETE/etc.),
+   classifies them as static or pattern, and compiles into efficient
+   data structures for runtime matching.
 
    Returns:
-   {:static-routes {uri {:methods {method handler-info}}}
-    :pattern-routes [{:pattern regex :uri-template string ...}]}"
+   ```clojure
+   {:static-routes {\"api/users\" {:methods {:post {...} :delete {...}}}}
+    :pattern-routes [{:pattern \"^thing/([^/]+)$\" :param-names [\"id\"] ...}]}
+   ```"
   [root-fs-path]
-  (let [routes (discover-routes root-fs-path)
+  (let [routes (discover-dynamic-routes root-fs-path)
         classified (map classify-route routes)
         {static-routes :static
          pattern-routes :pattern} (group-by :route-type classified)
 
-        compiled-static (into {} (map compile-static-route static-routes))
-        compiled-pattern (mapv compile-pattern-route pattern-routes)]
+        compiled-static (into {} (map compile-static-dynamic-route static-routes))
+        compiled-pattern (mapv compile-pattern-dynamic-route pattern-routes)]
 
     {:static-routes compiled-static
      :pattern-routes compiled-pattern}))
@@ -194,16 +306,16 @@
   (println "Source:" root-fs-path)
 
   ;; Generate static HTML for GET routes
-  (println "\n=== Generating static HTML files ===")
-  (static/publish-static root-fs-path publish-dir)
+  (println "\n=== Compiling GET routes to static HTML ===")
+  (compile-static-html root-fs-path publish-dir)
 
   ;; Compile non-GET routes if enabled
-  (let [result {:static-files-generated :unknown}] ; publish-static doesn't return count yet
+  (let [result {:static-files-generated :unknown}]
     (if compile-routes?
       (let [output-file (or compiled-routes-file
                             (str publish-dir "/compiled-routes.edn"))
-            compiled (compile-routes root-fs-path)]
-        (println "\n=== Compiling non-GET routes ===")
+            compiled (compile-dynamic-routes root-fs-path)]
+        (println "\n=== Compiling non-GET routes to runtime data ===")
         (println "Static routes:" (count (:static-routes compiled)))
         (println "Pattern routes:" (count (:pattern-routes compiled)))
         (write-compiled-routes compiled output-file)
@@ -212,5 +324,5 @@
                 :static-routes-count (count (:static-routes compiled))
                 :pattern-routes-count (count (:pattern-routes compiled))}))
       (do
-        (println "\n=== Route compilation disabled ===")
+        (println "\n=== Dynamic route compilation disabled ===")
         result))))
