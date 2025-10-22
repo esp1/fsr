@@ -1,10 +1,13 @@
 (ns esp1.fsr.static
   "Static site generation functionality.
-   
-   Provides a `publish-static` function to publish static site to an output directory.
-   
+
+   Provides a `publish-static` function to publish static HTML to an output directory.
+
    Also provides a `track-uri` function that can be used to track dynamically constructed URIs
-   so that they can be included in static site generation."
+   so that they can be included in static site generation.
+
+   For production deployment, use `esp1.fsr.compile/publish` which combines static HTML
+   generation with route compilation."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [esp1.fsr.core :refer [clj->ns-sym clojure-file-ext get-root-ns-prefix ns-sym->uri]]

@@ -101,6 +101,35 @@ Static site generation capabilities:
 - `publish-static` - Main generation entry point
 - `track-uri` - Dynamic URI registration
 
+#### 5. Route Compilation Module (src/esp1/fsr/compile.clj)
+[See technical details: tech/route-compilation.md](tech/route-compilation.md)
+
+Production route compilation for optimized deployment:
+- Compilation of non-GET routes to efficient data structures
+- Static vs pattern route classification
+- Serialization to EDN format
+- Runtime route matching without filesystem access
+
+**Key Functions**:
+- `compile-routes` - Main compilation entry point
+- `discover-routes` - Route discovery and classification
+- `compile-static-route` - Static route compilation
+- `compile-pattern-route` - Parameterized route compilation
+
+#### 6. Runtime Matching Module (src/esp1/fsr/runtime.clj)
+[See technical details: tech/route-compilation.md#module-3-runtime-matching](tech/route-compilation.md)
+
+Production runtime for compiled routes:
+- Loading compiled routes from EDN
+- Efficient route matching (static O(1), pattern O(n))
+- Handler resolution and invocation
+- Ring middleware integration
+
+**Key Functions**:
+- `load-compiled-routes` - Load compiled routes at startup
+- `match-route` - Route matching without filesystem
+- `wrap-compiled-routes` - Production Ring middleware
+
 ## Design Principles
 
 ### 1. Zero External Dependencies
@@ -196,17 +225,33 @@ The regex patterns are constructed in `filename-match-info` function.
 
 ## Deployment Considerations
 
-### Dynamic Web Application
+### Development Mode
 - Deploy as standard Ring application
 - Use `wrap-fs-router` middleware
 - Configure root filesystem path for routes
-- Optional: Enable hot-reload for development
+- Enable hot-reload for rapid iteration
+- Route resolution via filesystem scanning
 
-### Static Site
-- Run `publish-static` during build process
-- Deploy generated files to static hosting (S3, Netlify, etc.)
-- No runtime Clojure required
-- Track dynamic URIs during development
+### Production Mode (Static + Compiled)
+[See technical details: tech/route-compilation.md](tech/route-compilation.md)
+
+**Build Phase**:
+1. Run `publish` to generate both static HTML and compiled routes
+2. GET routes → Static HTML files in publish directory
+3. Non-GET routes → `compiled-routes.edn` data structure
+
+**Deployment**:
+- Deploy static HTML files to CDN/static hosting
+- Deploy compiled routes + handler code to application server
+- No source `.clj` files needed in production
+- Use `wrap-compiled-routes` middleware instead of `wrap-fs-router`
+- Zero filesystem scanning at runtime
+
+**Benefits**:
+- Faster startup (routes pre-compiled)
+- Predictable performance (no cache warming)
+- Smaller deployment artifact
+- Improved security (no source code exposure)
 
 ## Extension Points
 
@@ -228,3 +273,4 @@ Custom middleware can wrap handlers to support additional response types.
 - [Ring Integration](tech/ring-integration.md) - Middleware implementation
 - [Cache System](tech/cache-module.md) - Caching strategy and implementation
 - [Static Generation](tech/static-generation.md) - Static site generation details
+- [Route Compilation](tech/route-compilation.md) - Production route compilation system

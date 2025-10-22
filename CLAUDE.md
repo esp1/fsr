@@ -12,16 +12,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 src/esp1/fsr/
   core.clj      # Core routing logic: URI→file resolution, path parameters, namespace metadata
   ring.clj      # Ring middleware with hot-reload support (dev mode)
-  static.clj    # Static site generation
+  static.clj    # Static site generation + route compilation
+  compile.clj   # Route compilation for production (non-GET routes)
+  runtime.clj   # Runtime matching for compiled routes (no filesystem access)
+  cache.clj     # Route caching module
 
 test/           # Test route examples and core tests
-  esp1/fsr/core_test.clj
+  esp1/fsr/
+    core_test.clj, compile_test.clj, runtime_test.clj, integration_test.clj
   foo/, bar/, baz/, bad/  # Example route structures
+  integration/routes/     # Integration test routes
+
+examples/       # Production deployment examples
+  build.clj              # Build script for static + compiled routes
+  production_server.clj  # Example production server
+  README.md             # Deployment guide
 
 schema/         # Git submodule for fsr-schema (Malli schemas)
   src/esp1/fsr/schema.clj
 
-docs/api/       # Generated API documentation
+docs/
+  spec/         # Feature requirement specifications
+  tech/         # Technical implementation docs
+  api/          # Generated API documentation
 ```
 
 ## Key Concepts
@@ -42,19 +55,28 @@ docs/api/       # Generated API documentation
   - Full namespace metadata merged in
 
 ### Dev vs Production
-- **Development**: Use `wrap-fs-router` Ring middleware with hot-reload
-- **Production**: Use `publish-static` to generate static site or pre-compiled routes
+- **Development**: Use `wrap-fs-router` Ring middleware with hot-reload and filesystem scanning
+- **Production**:
+  - Use `publish` to generate static HTML (GET routes) + compiled routes (non-GET routes)
+  - Use `wrap-compiled-routes` middleware for zero-filesystem-access runtime
+  - See [examples/README.md](examples/README.md) for deployment guide
 
 ## Commands
 
 ```bash
 # Run tests
-clojure -M:dev -m clojure.test.runner
+bb test
 
 # Generate API documentation
 bb codox
 # or
 clojure -X:codox
+
+# Build for production (static HTML + compiled routes)
+bb examples/build.clj --routes src/routes --output dist
+
+# Start production server
+clojure -M -m production-server
 
 # Start REPL with dev dependencies
 clojure -M:dev
@@ -70,10 +92,28 @@ clojure -M:dev
 
 ## Testing
 
-Test route examples in `test/` directory demonstrate:
-- Simple routes: `test/foo/index.clj`
-- Path parameters: `test/bar/abc_<param1>_def_<<param2>>_xyz.clj`
-- Nested params: `test/baz/<<arg>>/moo.clj`
-- Date-based routes: `test/bar/2024_01_02_Some_Thing/index.clj`
+Test suite includes:
+- **Unit tests**: `esp1.fsr.{core,compile,runtime,cache}-test`
+- **Integration tests**: `esp1.fsr.integration-test` - full compilation & runtime flow
+- **Example routes**: `test/foo/`, `test/bar/`, `test/baz/` demonstrate:
+  - Simple routes: `test/foo/index.clj`
+  - Path parameters: `test/bar/abc_<param1>_def_<<param2>>_xyz.clj`
+  - Nested params: `test/baz/<<arg>>/moo.clj`
+  - Date-based routes: `test/bar/2024_01_02_Some_Thing/index.clj`
 
 Tests use Malli generative testing with custom file schema registry.
+
+## Production Deployment
+
+See [examples/README.md](examples/README.md) for complete deployment guide.
+
+**Quick Overview:**
+1. **Build**: `bb examples/build.clj` generates:
+   - Static HTML files for GET routes → `dist/*.html`
+   - Compiled routes for non-GET methods → `dist/compiled-routes.edn`
+
+2. **Deploy**:
+   - Static files → CDN/S3/static hosting
+   - Compiled routes + handler code → application server
+
+3. **Runtime**: Use `wrap-compiled-routes` middleware (no filesystem access)

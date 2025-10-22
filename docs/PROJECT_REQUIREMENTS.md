@@ -53,7 +53,16 @@ Generate complete static websites from dynamic route handlers:
 - URI tracking for dynamic path parameters
 - File output organized to mirror URI structure
 
-### 6. Route Caching System
+### 6. Production Route Compilation
+[See detailed specification: spec/compiled-route-production.md](spec/compiled-route-production.md)
+
+Compile filesystem routes into optimized production artifacts:
+- GET routes rendered to static HTML files
+- Non-GET routes compiled to efficient lookup data structures
+- Zero runtime filesystem scanning
+- Minimal deployment footprint (no source files needed)
+
+### 7. Route Caching System
 [See detailed specification: spec/route-caching.md](spec/route-caching.md)
 
 Performance optimization through intelligent route caching:
