@@ -90,6 +90,39 @@ clojure -M:dev
 - Route cache (`route-cache` atom in `core.clj`) cleared on each dev request
 - Hot-reload via `clojure.tools.namespace` if available (optional dev feature)
 
+## Working with Clojure Code
+
+**IMPORTANT:** When reading or editing `.clj`, `.cljs`, or `.cljc` files:
+
+1. **ALWAYS invoke the `clojure-edit` skill FIRST** before reading or editing Clojure files
+   - Prevents syntax errors (unmatched parens, brackets, braces)
+   - Provides structure-aware editing guidance
+   - Enables using form-aware scripts for safer edits
+
+2. **Use the skill's tools when available:**
+   - `scripts/read_clojure_file.clj` - Pattern-based reading (see functions by name/type)
+   - `scripts/edit_clojure_form.clj` - Form-aware editing (target functions by name)
+   - These scripts use bundled babashka (no installation needed)
+
+3. **For REPL-driven development:**
+   - Invoke the `clojure-repl` skill when testing code interactively
+   - Prototype in REPL first, then save to files using `clojure-edit`
+
+Example workflow:
+```bash
+# 1. Invoke clojure-edit skill
+/clojure-edit
+
+# 2. Read function signatures
+scripts/read_clojure_file.clj src/esp1/fsr/compile.clj --form-type defn --collapsed
+
+# 3. Edit a specific function by name
+scripts/edit_clojure_form.clj --file src/esp1/fsr/compile.clj \
+  --name compile-static-html \
+  --operation replace \
+  --new-form "(defn compile-static-html [root publish-dir] ...)"
+```
+
 ## Testing
 
 Test suite includes:
