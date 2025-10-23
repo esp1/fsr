@@ -21,7 +21,8 @@
      (cache/invalidate! #\"/api/.*\")
 
      ;; Get performance metrics
-     (cache/get-metrics)")
+     (cache/get-metrics)"
+  (:refer-clojure :exclude [get]))
 
 ;; ============================================================================
 ;; T012: Cache State Atoms
