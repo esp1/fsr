@@ -13,6 +13,9 @@
    - source: Either a file path (string), java.io.File, or java.io.Reader
 
    Returns: Compiled routes data structure with :static-routes and :pattern-routes"
+  {:malli/schema [:=> [:catn
+                       [:source [:or :file-path :file :any]]]
+                  :compiled-routes]}
   [source]
   (cond
     (string? source) (-> source io/reader slurp edn/read-string)
@@ -28,6 +31,11 @@
    - static-routes: Map from compile-routes :static-routes
 
    Returns: Handler info map with :ns, :handler, :metadata, or nil if no match"
+  {:malli/schema [:=> [:catn
+                       [:uri :uri-template]
+                       [:method :http-method]
+                       [:static-routes [:map-of :string :compiled-static-route]]]
+                  [:maybe :handler-info]]}
   [uri method static-routes]
   (when-let [route-entry (get static-routes uri)]
     (get-in route-entry [:methods method])))
@@ -41,6 +49,11 @@
    - pattern-routes: Vector from compile-routes :pattern-routes
 
    Returns: Handler info map with :ns, :handler, :metadata, :path-params, or nil"
+  {:malli/schema [:=> [:catn
+                       [:uri :uri-template]
+                       [:method :http-method]
+                       [:pattern-routes [:vector :compiled-pattern-route]]]
+                  [:maybe :handler-info]]}
   [uri method pattern-routes]
   (reduce
     (fn [_ route]
@@ -72,6 +85,11 @@
            - :handler - Handler function symbol
            - :metadata - Namespace metadata
            - :path-params - Map of parameter names to values (pattern routes only)"
+  {:malli/schema [:=> [:catn
+                       [:uri :uri-template]
+                       [:method :http-method]
+                       [:compiled-routes :compiled-routes]]
+                  [:maybe :handler-info]]}
   [uri method compiled-routes]
   (or (match-static-route uri method (:static-routes compiled-routes))
       (match-pattern-route uri method (:pattern-routes compiled-routes))))
@@ -84,6 +102,10 @@
    - handler-sym: Handler function symbol (may or may not be namespaced)
 
    Returns: Resolved var or nil if not found"
+  {:malli/schema [:=> [:catn
+                       [:ns-sym :ns-sym]
+                       [:handler-sym :handler-sym]]
+                  :any]}
   [ns-sym handler-sym]
   (require ns-sym)
   (if (namespace handler-sym)
@@ -98,6 +120,10 @@
    - request: Ring request map
 
    Returns: Ring response (map, string, or nil)"
+  {:malli/schema [:=> [:catn
+                       [:handler-info :handler-info]
+                       [:request :ring-request]]
+                  :ring-response]}
   [handler-info request]
   (when handler-info
     (let [handler-var (require-and-resolve (:ns handler-info) (:handler handler-info))
@@ -135,6 +161,13 @@
      (-> not-found-handler
          (wrap-compiled-routes {:compiled-routes-path \"dist/compiled-routes.edn\"})))
    ```"
+  {:malli/schema [:=> [:cat 
+                       [:fn #(fn? %)]
+                       [:map 
+                        [:compiled-routes-path {:optional true} :file-path]
+                        [:compiled-routes {:optional true} :compiled-routes]
+                        [:response-wrapper {:optional true} [:fn #(fn? %)]]]]
+                  [:fn #(fn? %)]]}
   [handler {:keys [compiled-routes-path compiled-routes response-wrapper]
             :or {response-wrapper identity}}]
   (let [routes (or compiled-routes

@@ -48,6 +48,8 @@
    Path parameters in URIs are designated by surrounding the parameter name
    with single angle brackets `<` `>` to match a parameter value that does not contain a slash `/` character,
    or double angle brackets `<<` `>>` to match a parameter value that may contain a slash `/` character."
+  {:malli/schema [:=> [:cat :http-method :uri-template :dir-path]
+                  [:maybe [:fn #(fn? %)]]]}
   [method uri root-fs-path]
   (when-let [[f path-params] (uri->file+params uri (io/file root-fs-path))]
     (let [endpoint-meta (-> f

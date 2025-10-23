@@ -90,6 +90,186 @@ clojure -M:dev
 - Route cache (`route-cache` atom in `core.clj`) cleared on each dev request
 - Hot-reload via `clojure.tools.namespace` if available (optional dev feature)
 
+## Malli Schema Requirements
+
+**CRITICAL:** All public functions and data structures MUST have Malli schemas.
+
+### Why Schemas Matter
+
+- **Validation**: Catch errors early with runtime validation (in dev/test)
+- **Documentation**: Schemas serve as executable documentation
+- **Generative Testing**: Enable property-based testing
+- **Zero Runtime Cost**: Schemas are metadata - no production dependency on Malli
+
+### Schema Location and Organization
+
+- **Data structure schemas**: Define in `schema/src/esp1/fsr/schema.clj` (git submodule)
+- **Function schemas**: Add as `:malli/schema` metadata on the function itself
+- **Schema registry**: Group related schemas in registry functions (e.g., `route-schemas`, `cache-schemas`)
+
+### Adding Function Schemas
+
+Function schemas MUST be added as metadata using the `:malli/schema` key. This keeps Malli as a dev-only dependency.
+
+**IMPORTANT:** Always use `:catn` (not `:cat`) for function parameters to provide descriptive names. This makes schemas self-documenting and easier to understand.
+
+**Template:**
+```clojure
+(defn my-function
+  "Function docstring"
+  {:malli/schema [:=> [:catn
+                       [:param-name :param-type]
+                       [:other-param :other-type]]
+                  :return-type]}
+  [param-name other-param]
+  (implementation))
+```
+
+**Example from cache.clj:**
+```clojure
+(defn- make-cache-key
+  "Create cache key from URI and root path."
+  {:malli/schema [:=> [:catn
+                       [:uri :string]
+                       [:root-path :string]]
+                  :string]}
+  [uri root-path]
+  (str uri "|" root-path))
+```
+
+**Why `:catn` instead of `:cat`:**
+- `:cat` - Takes unnamed types: `[:cat :string :string]` - unclear which is which
+- `:catn` - Takes named types: `[:catn [:uri :string] [:root-path :string]]` - self-documenting
+
+For single-argument functions, `:catn` is still preferred for consistency:
+```clojure
+{:malli/schema [:=> [:catn [:file-or-filename [:or :file :file-name]]]
+                [:maybe [:string {:title "File extension"}]]]}
+```
+
+### Adding Data Structure Schemas
+
+1. **Define the schema** in `schema/src/esp1/fsr/schema.clj`:
+   ```clojure
+   (def my-data-structure?
+     "Description of what this validates"
+     [:map
+      [:required-key :string]
+      [:optional-key {:optional true} :int]])
+   ```
+
+2. **Add to registry function**:
+   ```clojure
+   (defn my-schemas []
+     {:my-data-structure my-data-structure?
+      :other-schema other-schema?})
+   ```
+
+3. **Register in tests** - Update test fixtures to include the new registry:
+   ```clojure
+   (use-fixtures :once
+     (fn [f]
+       (mr/set-default-registry!
+        (merge
+         (m/comparator-schemas)
+         (m/type-schemas)
+         (m/sequence-schemas)
+         (m/base-schemas)
+         (fsr-schema/file-schemas)
+         (fsr-schema/cache-schemas)
+         (fsr-schema/route-schemas)
+         (fsr-schema/my-schemas)))  ;; <-- Add here
+       (mdev/start!)
+       (f)
+       (mdev/stop!)
+       (mr/set-default-registry! m/default-registry)))
+   ```
+
+### Schema Checklist for New Code
+
+When adding or modifying code, ensure:
+
+- [ ] All public functions have `:malli/schema` metadata
+- [ ] Function schemas use `:catn` (not `:cat`) with descriptive parameter names
+- [ ] All data structures passed between functions are defined in `schema.clj`
+- [ ] New schemas are added to appropriate registry function
+- [ ] Test registries are updated to include new schema groups
+- [ ] Tests pass with `bb test` (validates schemas work correctly)
+- [ ] Schemas use custom types from registry (`:file`, `:http-method`, etc.) not just primitives
+
+### Common Schema Patterns
+
+**Function with optional parameters:**
+```clojure
+{:malli/schema [:=> [:catn
+                     [:required-param :required-type]
+                     [:options [:map
+                                [:opt-key {:optional true} :string]]]]
+                :return-type]}
+```
+
+**Function returning maybe/optional:**
+```clojure
+{:malli/schema [:=> [:catn [:input :input-type]]
+                [:maybe :output-type]]}
+```
+
+**Higher-order function (returns function):**
+```clojure
+{:malli/schema [:=> [:catn [:input :input-type]]
+                [:fn #(fn? %)]]}
+```
+
+**Map with specific keys:**
+```clojure
+[:map
+ [:required-key :string]
+ [:optional-key {:optional true} :int]
+ [:namespaced-key {:optional true} :keyword]]
+```
+
+### Verification
+
+Before committing code:
+1. Run `bb test` - ensures all schemas compile and validate
+2. Check that Malli dev-mode instruments all functions
+3. Verify no schema-related warnings in test output
+
+### Example: Complete Workflow
+
+```clojure
+;; 1. Define data structure schema in schema/src/esp1/fsr/schema.clj
+(def request-context?
+  "Schema for request context"
+  [:map
+   [:uri :uri-template]
+   [:method :http-method]
+   [:params {:optional true} :path-params]])
+
+;; 2. Add to registry
+(defn route-schemas []
+  {:request-context request-context?
+   ;; ... other schemas
+   })
+
+;; 3. Add function with schema in src/esp1/fsr/core.clj
+(defn process-request
+  "Processes incoming request context"
+  {:malli/schema [:=> [:cat :request-context]
+                  :ring-response]}
+  [ctx]
+  ;; implementation
+  )
+
+;; 4. Update test registry in test files
+;; (Already shown above)
+
+;; 5. Run tests
+;; bb test
+```
+
+This ensures comprehensive schema coverage while keeping Malli as a dev-only dependency.
+
 ## Working with Clojure Code
 
 **IMPORTANT:** When reading or editing `.clj`, `.cljs`, or `.cljc` files:

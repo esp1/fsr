@@ -34,6 +34,8 @@
    ```clojure
    [:a {:href (track-uri (str \"/blog/\" post-id))} \"Read More\"]
    ```"
+  {:malli/schema [:=> [:cat :uri-template]
+                  :uri-template]}
   [uri]
   (when *tracked-uris*
     (swap! *tracked-uris* conj uri))
@@ -82,6 +84,10 @@
    ```clojure
    (compile-static-html \"src/routes\" \"dist\")
    ```"
+  {:malli/schema [:=> [:catn
+                       [:root-fs-path :dir-path]
+                       [:publish-dir :dir-path]]
+                  :nil]}
   [root-fs-path publish-dir]
   {:pre [(and root-fs-path publish-dir)]}
   ;; Clear cache before generation to ensure fresh content
@@ -128,6 +134,9 @@
    - :endpoint-meta - Full namespace metadata map
 
    Only includes routes with :endpoint/http metadata containing non-GET methods."
+  {:malli/schema [:=> [:catn
+                       [:root-fs-path :dir-path]]
+                  [:sequential :route-metadata]]}
   [root-fs-path]
   (let [root-ns-prefix (get-root-ns-prefix root-fs-path)]
     (->> (file-seq (io/file root-fs-path))
@@ -152,6 +161,7 @@
    - :pattern - Contains <param> or <<param>> (e.g. \"/thing/<id>\")
 
    Returns the route metadata with added :route-type key."
+  {:malli/schema [:=> [:cat :route-metadata] :route-metadata]}
   [route-meta]
   (let [uri (:uri route-meta)
         has-params? (re-find #"<[^/>]*>" uri)]
@@ -251,6 +261,7 @@
    {:static-routes {\"api/users\" {:methods {:post {...} :delete {...}}}}
     :pattern-routes [{:pattern \"^thing/([^/]+)$\" :param-names [\"id\"] ...}]}
    ```"
+  {:malli/schema [:=> [:cat :dir-path] :compiled-routes]}
   [root-fs-path]
   (let [routes (discover-dynamic-routes root-fs-path)
         classified (map classify-route routes)
@@ -269,6 +280,7 @@
    Args:
    - compiled-routes: Result from compile-routes
    - output-path: File path for output (e.g. \"dist/compiled-routes.edn\")"
+  {:malli/schema [:=> [:cat :compiled-routes :file-path] :nil]}
   [compiled-routes output-path]
   (io/make-parents output-path)
   (spit output-path (pr-str compiled-routes))
@@ -298,6 +310,12 @@
              :publish-dir \"dist\"
              :compile-routes? true})
    ```"
+  {:malli/schema [:=> [:cat [:map 
+                             [:root-fs-path :dir-path] 
+                             [:publish-dir :dir-path] 
+                             [:compile-routes? {:optional true} :boolean] 
+                             [:compiled-routes-file {:optional true} :file-path]]] 
+                  :map]}
   [{:keys [root-fs-path publish-dir compile-routes? compiled-routes-file]
     :or {compile-routes? true}}]
   {:pre [(and root-fs-path publish-dir)]}
@@ -323,6 +341,4 @@
                {:compiled-routes-file output-file
                 :static-routes-count (count (:static-routes compiled))
                 :pattern-routes-count (count (:pattern-routes compiled))}))
-      (do
-        (println "\n=== Dynamic route compilation disabled ===")
-        result))))
+      result)))

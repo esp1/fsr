@@ -55,13 +55,21 @@
 
 (defn- make-cache-key
   "Create cache key from URI and root path."
-  {:malli/schema [:=> [:cat :string :string] :string]}
+  {:malli/schema [:=> [:catn
+                       [:uri :string]
+                       [:root-path :string]]
+                  :string]}
   [uri root-path]
   (str uri "|" root-path))
 
 (defn- make-cache-entry
   "Create cache entry with current timestamp."
-  {:malli/schema [:=> [:cat :string :string :string :map] :map]}
+  {:malli/schema [:=> [:catn
+                       [:uri :string]
+                       [:root-path :string]
+                       [:resolved-path :string]
+                       [:params :map]]
+                  :map]}
   [uri root-path resolved-path params]
   {:uri uri
    :root-path root-path
@@ -83,7 +91,10 @@
 (defn cache-get
   "Retrieve entry from cache, updating access time for LRU.
    Returns cache entry or nil if not found or cache disabled."
-  {:malli/schema [:=> [:cat :string :string] [:maybe :map]]}
+  {:malli/schema [:=> [:catn
+                       [:uri :string]
+                       [:root-path :string]]
+                  [:maybe :map]]}
   [uri root-path]
   (when (:enabled? @cache-config)
     (let [cache-key (make-cache-key uri root-path)]
@@ -126,7 +137,12 @@
   "Add entry to cache with LRU eviction if needed.
    Updates existing entry if cache key already exists.
    Respects :enabled? config flag."
-  {:malli/schema [:=> [:cat :string :string :string :map] [:maybe :map]]}
+  {:malli/schema [:=> [:catn
+                       [:uri :string]
+                       [:root-path :string]
+                       [:resolved-path :string]
+                       [:params :map]]
+                  [:maybe :map]]}
   [uri root-path resolved-path params]
   (when (:enabled? @cache-config)
     (let [cache-key (make-cache-key uri root-path)
@@ -139,15 +155,14 @@
                  (>= (count (:entries @cache-store)) max-entries))
         (evict-lru!))
 
-      ;; Add or update entry
+      ;; Create and add the entry
       (let [entry (make-cache-entry uri root-path resolved-path params)]
         (swap! cache-store
                (fn [store]
-                 (cond-> store
-                   true (assoc-in [:entries cache-key] entry)
-                   true (update :access-order update-access-order cache-key))))
+                 (-> store
+                     (assoc-in [:entries cache-key] entry)
+                     (update :access-order update-access-order cache-key))))
 
-        ;; Update size metric if new entry
         (when is-new-entry?
           (swap! cache-metrics update :current-size inc))
 
@@ -160,41 +175,42 @@
 (defn clear!
   "Clear all entries from cache.
    Returns the number of entries that were cleared."
-  {:malli/schema [:=> [:cat] :int]}
+  {:malli/schema [:=> [:catn] :int]}
   []
-  (let [count-before (count (:entries @cache-store))]
+  (let [count (count (:entries @cache-store))]
     (reset! cache-store {:entries {} :access-order []})
     (swap! cache-metrics assoc :current-size 0)
-    count-before))
+    count))
 
 (defn invalidate!
   "Invalidate cache entries matching regex pattern.
    Pattern is matched against the full cache key (uri|root-path).
    Returns the number of entries invalidated."
-  {:malli/schema [:=> [:cat :any] :int]}
+  {:malli/schema [:=> [:catn [:pattern :any]] :int]}
   [pattern]
-  (let [regex-pattern (if (instance? java.util.regex.Pattern pattern)
-                        pattern
-                        (re-pattern pattern))
-        entries-before (:entries @cache-store)
-        keys-to-remove (filter #(re-find regex-pattern %) (keys entries-before))]
+  (let [pattern-re (if (instance? java.util.regex.Pattern pattern)
+                     pattern
+                     (re-pattern pattern))
+        entries-before (count (:entries @cache-store))
+        matching-keys (filter #(re-find pattern-re %) (keys (:entries @cache-store)))]
 
     (swap! cache-store
            (fn [store]
              (-> store
-                 (update :entries #(apply dissoc % keys-to-remove))
+                 (update :entries #(apply dissoc % matching-keys))
                  (update :access-order (fn [order]
-                                         (filterv (fn [k] (not (some #{k} keys-to-remove)))
-                                                  order))))))
+                                         (vec (remove (set matching-keys) order)))))))
 
-    (swap! cache-metrics update :current-size - (count keys-to-remove))
-    (count keys-to-remove)))
+    (let [entries-after (count (:entries @cache-store))
+          invalidated (- entries-before entries-after)]
+      (swap! cache-metrics update :current-size - invalidated)
+      invalidated)))
 
 (defn configure!
   "Update cache configuration at runtime.
    Accepts map with keys: :max-entries, :enabled?, :eviction-policy.
    Returns the updated configuration."
-  {:malli/schema [:=> [:cat :map] :map]}
+  {:malli/schema [:=> [:catn [:config-map :map]] :map]}
   [config-map]
   (swap! cache-config merge config-map)
   @cache-config)
@@ -206,21 +222,19 @@
 (defn get-metrics
   "Get current cache performance metrics.
    Returns map with :hits, :misses, :evictions, :current-size, and :hit-rate."
-  {:malli/schema [:=> [:cat] :map]}
+  {:malli/schema [:=> [:catn] :map]}
   []
   (let [metrics @cache-metrics
-        hits (:hits metrics)
-        misses (:misses metrics)
-        total (+ hits misses)
-        hit-rate (if (zero? total)
+        total-requests (+ (:hits metrics) (:misses metrics))
+        hit-rate (if (zero? total-requests)
                    0.0
-                   (double (/ hits total)))]
+                   (double (/ (:hits metrics) total-requests)))]
     (assoc metrics :hit-rate hit-rate)))
 
 (defn debug-info
   "Get detailed cache state for debugging (development only).
    Returns map with :config, :metrics, :sample-keys, and :stats."
-  {:malli/schema [:=> [:cat] :map]}
+  {:malli/schema [:=> [:catn] :map]}
   []
   (let [store @cache-store
         entries (:entries store)
