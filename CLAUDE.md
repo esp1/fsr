@@ -175,8 +175,24 @@ scripts/edit_clojure_form.clj --file src/esp1/fsr/compile.clj \
 
 ## Testing
 
+**IMPORTANT:** When creating or modifying test files, invoke the `clojure-testing` skill:
+
+```bash
+/clojure-testing
+```
+
+This skill provides:
+- Malli schema registry setup patterns
+- Property-based testing workflows using Malli generators
+- Integration test patterns with temp directory cleanup
+- Cache testing best practices
+- Test organization standards (test IDs, `testing` blocks, docstrings)
+
+### Test Suite Structure
+
 Test suite includes:
-- **Unit tests**: `esp1.fsr.{core,compile,runtime,cache}-test`
+- **Unit tests**: `esp1.fsr.{core,compile,runtime,cache}-test` - minimal, simple function behavior
+- **Property-based tests**: Schema-driven generative tests (100+ samples) - **preferred approach**
 - **Integration tests**: `esp1.fsr.integration-test` - full compilation & runtime flow
 - **Example routes**: `test/foo/`, `test/bar/`, `test/baz/` demonstrate:
   - Simple routes: `test/foo/index.clj`
