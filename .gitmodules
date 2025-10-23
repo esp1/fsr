@@ -1,3 +1,0 @@
-[submodule "schema"]
-	path = schema
-	url = git@github.com:esp1/fsr-schema.git
