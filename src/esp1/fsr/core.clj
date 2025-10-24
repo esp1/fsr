@@ -159,7 +159,11 @@
   "Resolves the given URI to a filesystem file or dir in the given current working directory.
    If a matching filesystem file or dir is found, returns a vector 2-tuple
    of the matched file/dir, and a map of matched path parameters.
-   If no matching filesystem file or dir is found, returns nil."
+   If no matching filesystem file or dir is found, returns nil.
+
+   URIs are normalized by stripping leading and trailing slashes before resolution.
+   This allows the function to accept URIs in their natural form (e.g., from Ring requests)
+   which typically include leading slashes (e.g., \"/foo/bar\" or \"foo/bar\" both work)."
   {:malli/schema [:=> [:catn
                        [:uri [:string {:title "URI"}]]
                        [:cwd [:file {:title "CWD"}]]]
@@ -167,13 +171,16 @@
                            [:file {:title "Matched file"}]
                            [:map-of {:title "Path parameters"} :string :string]]]]}
   [uri cwd]
-  (if-let [cache-entry (cache/cache-get uri (.getPath cwd))]
-    [(io/file (:resolved-path cache-entry)) (:params cache-entry)]
-    (let [result (uri->file+params-uncached uri cwd)]
-      (when result
-        (let [[file params] result]
-          (cache/put! uri (.getPath cwd) (.getPath file) params)))
-      result)))
+  (let [normalized-uri (-> uri
+                           (str/replace #"^/" "")   ; strip leading /
+                           (str/replace #"/$" ""))] ; strip trailing /
+    (if-let [cache-entry (cache/cache-get normalized-uri (.getPath cwd))]
+      [(io/file (:resolved-path cache-entry)) (:params cache-entry)]
+      (let [result (uri->file+params-uncached normalized-uri cwd)]
+        (when result
+          (let [[file params] result]
+            (cache/put! normalized-uri (.getPath cwd) (.getPath file) params)))
+        result))))
 
 (defn file->clj
   "Given a file that is part of a clojure namespace,

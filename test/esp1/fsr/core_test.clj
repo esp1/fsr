@@ -50,6 +50,28 @@
   (is (= nil
          (file->clj (io/file "not/here")))))
 
+(deftest uri-slash-normalization
+  (testing "uri->file+params normalizes leading slashes"
+    (is (= [(io/file "test/bar/test.txt") {}]
+           (uri->file+params "/bar/test.txt" (io/file "test")))
+        "Leading slash should be stripped"))
+
+  (testing "uri->file+params normalizes trailing slashes"
+    (is (= [(io/file "test/bar/2024_01_02_Some_Thing") {}]
+           (uri->file+params "bar/2024-01-02-Some-Thing/" (io/file "test")))
+        "Trailing slash should be stripped"))
+
+  (testing "uri->file+params normalizes both leading and trailing slashes"
+    (is (= [(io/file "test/bar/2024_01_02_Some_Thing") {}]
+           (uri->file+params "/bar/2024-01-02-Some-Thing/" (io/file "test")))
+        "Both leading and trailing slashes should be stripped"))
+
+  (testing "uri->file+params works with path parameters and leading slash"
+    (is (= [(io/file "test/bar/abc_<param1>_def_<<param2>>_xyz.clj")
+            {"param1" "word", "param2" "m/n/o/p"}]
+           (uri->file+params "/abc-word-def-m/n/o/p-xyz" (io/file "test/bar")))
+        "Leading slash should not interfere with path parameter matching")))
+
 (deftest step-match
   (is (= [nil (io/file "test/baz/<<arg>>.clj") {"arg" "blah"}]
          (#'esp1.fsr.core/step-match "blah" (io/file "test/baz"))))
