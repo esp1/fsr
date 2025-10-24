@@ -266,3 +266,29 @@ Developers should call `track-uri` any time they generate a dynamic URI:
 - [URI to File Routing](uri-to-file-routing.md) - Describes route resolution
 - [Namespace Metadata System](namespace-metadata.md) - Describes handler configuration
 - [Ring Middleware Integration](ring-middleware.md) - Describes request/response handling
+
+### FR-011: Root Index Route Handling
+The system MUST correctly handle root index routes (empty URIs) during static generation.
+
+**Acceptance Criteria**:
+- When a route file `index.clj` exists at the root of the routes directory, it represents the site root URI (`""`)
+- Empty URIs MUST be normalized to `"index"` for route resolution
+- Generated output for root index goes to `output-dir/index.html`
+- The normalization happens internally and is transparent to developers
+
+**Test Coverage**: T102 (`test-empty-uri-resolution` in `compile_test.clj`)
+
+**Rationale**: The `ns-sym->uri` function converts root `index.clj` namespaces to empty strings for clean URIs, but the route resolution system expects non-empty URIs for matching. This normalization bridges that gap.
+
+### FR-012: Tracked URI Path Normalization  
+The system MUST normalize tracked URIs by stripping leading slashes before route resolution.
+
+**Acceptance Criteria**:
+- Tracked URIs may be provided with leading slashes (e.g., `/blog/123`)
+- Leading slashes MUST be stripped before passing to route resolution
+- Relative URIs (without leading slash) work correctly for resolution
+- The normalization happens automatically during static generation
+
+**Test Coverage**: T103 (`test-tracked-uri-slash-handling` in `compile_test.clj`)
+
+**Rationale**: Developers naturally write URIs with leading slashes in HTML `href` attributes and `track-uri` calls. However, FSR's route resolution expects URIs without leading slashes to match filesystem paths correctly.

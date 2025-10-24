@@ -104,17 +104,19 @@
       ;; Generate non-parameterized endpoints (& collect tracked URIs in the process)
       (doseq [uri uris]
         (when-not (re-find #"<[^/>]*>" uri) ; filter out parameterized endpoint URIs
-          (when-let [endpoint-fn (uri->endpoint-fn :get uri root-fs-path)]
-            (generate-html-file (io/file publish-dir uri "index.html") endpoint-fn uri))))
+          ;; Empty URI means root index - normalize to "index" for resolution
+          (let [resolve-uri (if (empty? uri) "index" uri)]
+            (when-let [endpoint-fn (uri->endpoint-fn :get resolve-uri root-fs-path)]
+              (generate-html-file (io/file publish-dir uri "index.html") endpoint-fn uri)))))
 
       ;; Generate tracked URIs
       (doseq [uri @*tracked-uris*]
         (let [relative-uri (str/replace uri #"^/" "")
-              endpoint-fn (uri->endpoint-fn :get uri root-fs-path)]
+              endpoint-fn (uri->endpoint-fn :get relative-uri root-fs-path)]
           (generate-html-file (io/file publish-dir (if (str/ends-with? relative-uri "/")
                                                       (str relative-uri "index.html")
                                                       relative-uri))
-                              endpoint-fn uri)))
+                              endpoint-fn relative-uri)))
 
       ;; Clear cache after generation to free memory
       (esp1.fsr.core/clear-route-cache!)

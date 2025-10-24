@@ -299,3 +299,35 @@ Here's a simplified version of the core algorithm:
 - [URI to File Routing Spec](../spec/uri-to-file-routing.md) - Requirements for this module
 - [Cache Module](cache-module.md) - Performance optimization
 - [Ring Integration](ring-integration.md) - How this is used in requests
+
+#### `file->clj`
+Resolves a file or directory to its corresponding Clojure source file.
+
+**Signature**:
+```clojure
+(file->clj f)
+→ java.io.File or nil
+```
+
+**Implementation Details**:
+- If `f` is already a `.clj` or `.cljc` file, returns it unchanged
+- If `f` is a directory, searches for Clojure files with special prioritization:
+  1. First checks for `index.clj` in the directory
+  2. Falls back to `index.cljc` if `.clj` doesn't exist
+  3. Falls back to the first `.clj` file found if no index file exists
+- Returns `nil` if no Clojure file can be found
+
+**Example**:
+```clojure
+(file->clj (io/file "src/routes/products"))
+→ #<File src/routes/products/index.clj>
+
+(file->clj (io/file "src/routes/about.clj"))
+→ #<File src/routes/about.clj>
+```
+
+**Requirements**: Implements [FR-002: Index File Support](../spec/uri-to-file-routing.md#fr-002-index-file-support)
+
+**Rationale**: Prioritizing `index.clj` ensures predictable behavior when directories contain multiple `.clj` files. This mirrors web server index file conventions and allows organizing related utilities alongside the main route handler.
+
+**Test Coverage**: T101 (`file->clj-prioritizes-index-test` in `core_test.clj`)

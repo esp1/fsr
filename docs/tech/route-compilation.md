@@ -452,3 +452,44 @@ Enable with `:compiler :reitit` option.
 - [Core Module Implementation](core-module.md)
 - [Static Site Generation Spec](../spec/static-site-generation.md)
 - [URI to File Routing Spec](../spec/uri-to-file-routing.md)
+
+## Static HTML Compilation
+
+The `compile-static-html` function generates static HTML files from GET routes. This section documents implementation details and edge cases.
+
+### Root Index Handling
+
+**Challenge**: Root `index.clj` files generate empty URI strings (`""`) via `ns-sym->uri`, but route resolution requires non-empty URIs.
+
+**Solution**: Empty URIs are normalized to `"index"` before calling `uri->endpoint-fn`:
+
+```clojure
+(doseq [uri uris]
+  (when-not (re-find #"<[^/>]*>" uri)
+    (let [resolve-uri (if (empty? uri) "index" uri)]
+      (when-let [endpoint-fn (uri->endpoint-fn :get resolve-uri root-fs-path)]
+        (generate-html-file ...)))))
+```
+
+**Requirements**: Implements [FR-011: Root Index Route Handling](../spec/static-site-generation.md#fr-011-root-index-route-handling)
+
+**Test Coverage**: T102 (`test-empty-uri-resolution` in `compile_test.clj`)
+
+### Tracked URI Slash Normalization
+
+**Challenge**: Developers naturally write URIs with leading slashes (e.g., `/blog/123`) when calling `track-uri`, but route resolution expects URIs without leading slashes.
+
+**Solution**: Strip leading slashes from tracked URIs before resolution:
+
+```clojure
+(doseq [uri @*tracked-uris*]
+  (let [relative-uri (str/replace uri #"^/" "")
+        endpoint-fn (uri->endpoint-fn :get relative-uri root-fs-path)]
+    (generate-html-file ...)))
+```
+
+**Requirements**: Implements [FR-012: Tracked URI Path Normalization](../spec/static-site-generation.md#fr-012-tracked-uri-path-normalization)
+
+**Test Coverage**: T103 (`test-tracked-uri-slash-handling` in `compile_test.clj`)
+
+**Rationale**: This normalization allows developers to use natural URI syntax (with leading slashes) in their code while maintaining compatibility with FSR's internal route resolution which expects filesystem-relative paths.

@@ -183,12 +183,23 @@
                        [:f :file]]
                   [:maybe :file]]}
   [f]
-  (or (->> (file-seq f)
-           (filter clojure-file-ext)
-           first)
-      ;; if f is already a clojure file, return it
+  (or ;; if f is already a clojure file, return it
       (when (clojure-file-ext f)
-        f)))
+        f)
+      ;; if f is a directory, look for index.clj or index.cljc
+      (when (.isDirectory f)
+        (let [index-clj (io/file f "index.clj")
+              index-cljc (io/file f "index.cljc")]
+          (or (when (.exists index-clj) index-clj)
+              (when (.exists index-cljc) index-cljc)
+              ;; fallback to first clj file found
+              (->> (file-seq f)
+                   (filter clojure-file-ext)
+                   first))))
+      ;; otherwise scan for clj files
+      (->> (file-seq f)
+           (filter clojure-file-ext)
+           first)))
 
 (defn clj->ns-sym
   "Returns the namespace name symbol for the clojure file."

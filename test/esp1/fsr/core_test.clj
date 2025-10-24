@@ -166,3 +166,32 @@
               (is (or (= ns-sym reconstructed-ns)
                       ;; or it's the index version
                       (= ns-sym (symbol (str prefix "." uri-as-ns ".index"))))))))))))
+;; T101: Test file->clj prioritizes index.clj in directories
+(deftest file->clj-prioritizes-index-test
+  (testing "file->clj returns index.clj when directory has multiple .clj files"
+    ;; The test/bar/2024_01_02_Some_Thing directory has both index.clj and other files
+    ;; file->clj should prioritize index.clj over other .clj files
+    (let [dir (io/file "test/bar/2024_01_02_Some_Thing")
+          result (file->clj dir)]
+      (is (= (io/file "test/bar/2024_01_02_Some_Thing/index.clj") result)
+          "Should return index.clj when directory contains it")))
+
+  (testing "file->clj handles directory without index.clj"
+    ;; If a directory doesn't have index.clj, should fall back to first .clj file
+    (let [temp-dir (io/file "test/temp-test-dir")
+          temp-file (io/file temp-dir "other.clj")]
+      (try
+        (.mkdirs temp-dir)
+        (spit temp-file "(ns test.temp)")
+        (let [result (file->clj temp-dir)]
+          (is (= temp-file result)
+              "Should fall back to first .clj file when no index.clj"))
+        (finally
+          (.delete temp-file)
+          (.delete temp-dir)))))
+
+  (testing "file->clj returns clj file when given clj file directly"
+    (let [clj-file (io/file "test/foo/index.clj")
+          result (file->clj clj-file)]
+      (is (= clj-file result)
+          "Should return the file itself when given a .clj file"))))

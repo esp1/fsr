@@ -53,8 +53,12 @@ The system MUST support index file matching where a URI can map to an `index.clj
 **Acceptance Criteria**:
 - Given URI `/products`, the system matches either `products.clj` OR `products/index.clj`
 - If both exist, direct file match (`products.clj`) takes precedence
+- When resolving a directory to a namespace file, `index.clj` MUST be prioritized over other `.clj` files in the directory
+- If no `index.clj` exists, the system falls back to the first `.clj` file found
 - Index files allow nested route organization
 
+**Test Coverage**: T101 (`file->clj-prioritizes-index-test` in `core_test.clj`)
+### FR-003: Dash to Underscore Conversion
 ### FR-003: Dash to Underscore Conversion
 The system MUST convert dashes in URIs to underscores when matching filenames, following Clojure namespace naming conventions.
 
