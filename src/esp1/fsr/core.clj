@@ -9,8 +9,9 @@
 
 (defn clear-route-cache!
   "Clear the route cache - useful for development mode with hot reloading.
-   Delegates to the cache module."
-  {:malli/schema [:=> [:catn] :nil]}
+   Delegates to the cache module.
+   Returns the number of entries cleared."
+  {:malli/schema [:=> [:catn] :int]}
   []
   (cache/clear!))
 
@@ -269,14 +270,21 @@
         (ns-resolve default-ns s))))
 
 (defn http-endpoint-fn
-  "Returns the handler function for the given HTTP method and endpoint metadata.
+  "Returns the handler var for the given HTTP method and endpoint metadata.
+   If no function is found in :endpoint/http, recursively delegates to :endpoint/type.
    If no function is found, returns nil."
   {:malli/schema [:=> [:catn
                        [:method [:keyword {:title "HTTP method"}]]
                        [:endpoint-meta :map]]
-                  [:maybe [:fn #(fn? %)]]]}
+                  [:maybe [:fn #(var? %)]]]}
   [method endpoint-meta]
-  (when-let [http-meta (:endpoint/http endpoint-meta)]
-    (when-let [fn-sym (get http-meta method)]
-      (let [endpoint-ns (:endpoint/ns endpoint-meta)]
-        (resolve-sym fn-sym endpoint-ns)))))
+  (or
+   ;; First try to find handler in :endpoint/http
+   (when-let [http-meta (:endpoint/http endpoint-meta)]
+     (when-let [fn-sym (get http-meta method)]
+       (let [endpoint-ns (:endpoint/ns endpoint-meta)]
+         (resolve-sym fn-sym endpoint-ns))))
+   ;; If not found, try delegating to :endpoint/type
+   (when-let [type-ns (:endpoint/type endpoint-meta)]
+     (let [delegated-meta (ns-endpoint-meta type-ns)]
+       (http-endpoint-fn method delegated-meta)))))
