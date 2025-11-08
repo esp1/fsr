@@ -332,15 +332,24 @@
   ;; Compile non-GET routes if enabled
   (let [result {:static-files-generated :unknown}]
     (if compile-routes?
-      (let [output-file (or compiled-routes-file
-                            (str publish-dir "/compiled-routes.edn"))
-            compiled (compile-dynamic-routes root-fs-path)]
+      (let [compiled (compile-dynamic-routes root-fs-path)
+            static-count (count (:static-routes compiled))
+            pattern-count (count (:pattern-routes compiled))
+            has-dynamic-routes? (or (pos? static-count) (pos? pattern-count))]
         (println "\n=== Compiling non-GET routes to runtime data ===")
-        (println "Static routes:" (count (:static-routes compiled)))
-        (println "Pattern routes:" (count (:pattern-routes compiled)))
-        (write-compiled-routes compiled output-file)
-        (merge result
-               {:compiled-routes-file output-file
-                :static-routes-count (count (:static-routes compiled))
-                :pattern-routes-count (count (:pattern-routes compiled))}))
+        (println "Static routes:" static-count)
+        (println "Pattern routes:" pattern-count)
+        (if has-dynamic-routes?
+          (let [output-file (or compiled-routes-file
+                                (str publish-dir "/compiled-routes.edn"))]
+            (write-compiled-routes compiled output-file)
+            (merge result
+                   {:compiled-routes-file output-file
+                    :static-routes-count static-count
+                    :pattern-routes-count pattern-count}))
+          (do
+            (println "No dynamic routes found - skipping compiled-routes.edn")
+            (merge result
+                   {:static-routes-count 0
+                    :pattern-routes-count 0}))))
       result)))
