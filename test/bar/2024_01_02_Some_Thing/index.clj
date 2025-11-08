@@ -1,1 +1,1 @@
-(ns bar.2024-01-02-Some-Thing.index)
+(ns bar.2024-01-02_Some_Thing.index)

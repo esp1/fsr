@@ -40,7 +40,7 @@
          (file->clj (io/file "test/bar/abc_<param1>_def_<<param2>>_xyz.clj"))))
 
   (is (= [(io/file "test/bar/2024_01_02_Some_Thing") {}]
-         (uri->file+params "bar/2024-01-02-Some-Thing" (io/file "test"))))
+         (uri->file+params "bar/2024-01-02_Some_Thing" (io/file "test"))))
   (is (= (io/file "test/bar/2024_01_02_Some_Thing/index.clj")
          (file->clj (io/file "test/bar/2024_01_02_Some_Thing")))))
 
@@ -58,12 +58,12 @@
 
   (testing "uri->file+params normalizes trailing slashes"
     (is (= [(io/file "test/bar/2024_01_02_Some_Thing") {}]
-           (uri->file+params "bar/2024-01-02-Some-Thing/" (io/file "test")))
+           (uri->file+params "bar/2024-01-02_Some_Thing/" (io/file "test")))
         "Trailing slash should be stripped"))
 
   (testing "uri->file+params normalizes both leading and trailing slashes"
     (is (= [(io/file "test/bar/2024_01_02_Some_Thing") {}]
-           (uri->file+params "/bar/2024-01-02-Some-Thing/" (io/file "test")))
+           (uri->file+params "/bar/2024-01-02_Some_Thing/" (io/file "test")))
         "Both leading and trailing slashes should be stripped"))
 
   (testing "uri->file+params works with path parameters and leading slash"
