@@ -147,14 +147,23 @@
                            [:file {:title "Matched file"}]
                            [:map-of {:title "Path parameters"} :string :string]]]]}
   [uri cwd]
-  (loop [uri uri
-         cwd cwd
-         params {}]
-    (when-let [[remaining-uri matched-file matched-params] (step-match uri cwd)]
-      (let [new-params (merge params matched-params)]
-        (if (and remaining-uri (.isDirectory matched-file))
-          (recur remaining-uri matched-file new-params)
-          [matched-file new-params])))))
+  ;; Handle root path (empty URI) - check for index.clj/index.cljc directly in cwd
+  (if (= uri "")
+    (let [index-clj (io/file cwd "index.clj")
+          index-cljc (io/file cwd "index.cljc")]
+      (cond
+        (.exists index-clj) [index-clj {}]
+        (.exists index-cljc) [index-cljc {}]
+        :else nil))
+    ;; Normal path resolution
+    (loop [uri uri
+           cwd cwd
+           params {}]
+      (when-let [[remaining-uri matched-file matched-params] (step-match uri cwd)]
+        (let [new-params (merge params matched-params)]
+          (if (and remaining-uri (.isDirectory matched-file))
+            (recur remaining-uri matched-file new-params)
+            [matched-file new-params]))))))
 
 (defn uri->file+params
   "Resolves the given URI to a filesystem file or dir in the given current working directory.

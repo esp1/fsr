@@ -1,4 +1,4 @@
-# Technical Architecture
+# Technical Documentation
 
 ## Stack
 
@@ -10,22 +10,23 @@
 ## Modules
 
 1. **core.clj** - URI→file resolution, path parameters, namespace metadata
-   [tech/core-module.md](tech/core-module.md)
+   [core-module.md](core-module.md)
 
 2. **ring.clj** - Ring middleware, hot-reload support
-   [tech/ring-integration.md](tech/ring-integration.md)
 
 3. **cache.clj** - Route caching for performance
-   [tech/cache-module.md](tech/cache-module.md)
+   [cache-module.md](cache-module.md)
 
 4. **static.clj** - Static site generation from GET endpoints
-   [tech/static-generation.md](tech/static-generation.md)
 
 5. **compile.clj** - Compile routes to EDN for production
-   [tech/route-compilation.md](tech/route-compilation.md)
+   [route-compilation.md](route-compilation.md)
 
 6. **runtime.clj** - Load/match compiled routes (zero filesystem access)
-   [tech/route-compilation.md](tech/route-compilation.md)
+   [route-compilation.md](route-compilation.md)
+
+- [Development](development.md) - Build commands, project structure
+- [API Documentation](https://esp1.github.io/fsr/api/) - Function-level API docs
 
 ## Design Principles
 
@@ -51,7 +52,7 @@
 **Dev**: Use `wrap-fs-router`, enable hot-reload, routes resolved from filesystem
 
 **Prod**: Run `publish` → static HTML + `compiled-routes.edn`, use `wrap-compiled-routes`, zero filesystem access
-[tech/route-compilation.md](tech/route-compilation.md)
+[route-compilation.md](route-compilation.md)
 
 ## Extension
 

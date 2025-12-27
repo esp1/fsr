@@ -72,6 +72,22 @@
            (uri->file+params "/abc-word-def-m/n/o/p-xyz" (io/file "test/bar")))
         "Leading slash should not interfere with path parameter matching")))
 
+(deftest root-index-resolution
+  (testing "uri->file+params resolves root path to index.clj"
+    (is (= [(io/file "test/foo/index.clj") {}]
+           (uri->file+params "/" (io/file "test/foo")))
+        "Root path '/' should resolve to index.clj"))
+
+  (testing "uri->file+params resolves empty string to index.clj"
+    (is (= [(io/file "test/foo/index.clj") {}]
+           (uri->file+params "" (io/file "test/foo")))
+        "Empty string should resolve to index.clj"))
+
+  (testing "uri->file+params returns nil for root when no index exists"
+    (is (= nil
+           (uri->file+params "/" (io/file "test/bar")))
+        "Root path should return nil when no index.clj exists")))
+
 (deftest step-match
   (is (= [nil (io/file "test/baz/<<arg>>.clj") {"arg" "blah"}]
          (#'esp1.fsr.core/step-match "blah" (io/file "test/baz"))))

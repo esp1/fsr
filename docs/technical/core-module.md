@@ -6,19 +6,18 @@ Maps URIs to .clj files via filesystem traversal. Zero dependencies.
 
 ## Key Functions
 
-**`uri->file`** (core.clj:X) - Match URI to file
+**`uri->file`** - Match URI to file
 - Split URI into segments, match each against filesystem (exact or `<param>`/`<<param>>`), return file + params
 - Example: `/user/123/profile` → `user/<id>/profile.clj` + `{"id" "123"}`
 
-**`get-root-ns-prefix`** (core.clj:X) - Extract namespace prefix from filesystem path
+**`get-root-ns-prefix`** - Extract namespace prefix from filesystem path
 - Example: `src/my_app/routes` → `"my-app.routes"`
 
-**`filename-match-info`** (core.clj:X) - Convert filename to regex pattern + param names
+**`filename-match-info`** - Convert filename to regex pattern + param names
 - `user_<id>` → `["^user_([^/]*)(/(.*))?$" ["id"]]`
 
-**`file->clj`** (core.clj:X) - Resolve file/dir to .clj file
+**`file->clj`** - Resolve file/dir to .clj file
 - Directory → prioritize `index.clj`, then `index.cljc`, then first `.clj`
-- Test: core_test.clj:file->clj-prioritizes-index-test
 
 ## Patterns
 
@@ -40,6 +39,6 @@ Maps URIs to .clj files via filesystem traversal. Zero dependencies.
 
 ## Related
 
-- [../spec/uri-to-file-routing.md](../spec/uri-to-file-routing.md) - Requirements
+- [../functional/uri-to-file-routing.md](../functional/uri-to-file-routing.md) - Requirements
 - [cache-module.md](cache-module.md) - Caching
-- [ring-integration.md](ring-integration.md) - Usage
+- [../functional/ring-middleware.md](../functional/ring-middleware.md) - Ring integration
