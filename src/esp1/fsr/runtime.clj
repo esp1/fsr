@@ -1,8 +1,25 @@
 (ns esp1.fsr.runtime
-  "Runtime route matching for compiled routes.
+  "Runtime route matching for compiled routes (zero filesystem access).
 
-   Provides efficient route matching without filesystem access by using
-   pre-compiled route data structures."
+   Loads pre-compiled routes from EDN and matches requests efficiently.
+   Routes are compiled at build time using `esp1.fsr.compile`.
+
+   ## Performance
+
+   | Route Type | Complexity | Notes                           |
+   |------------|------------|----------------------------------|
+   | Static     | O(1)       | Hash lookup by URI              |
+   | Pattern    | O(n)       | Sequential regex match, n=routes |
+
+   ## Usage
+
+   ```clojure
+   (def app
+     (-> not-found-handler
+         (wrap-compiled-routes {:compiled-routes-path \"dist/compiled-routes.edn\"})))
+   ```
+
+   See `esp1.fsr.compile` for building the compiled routes."
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]))
 

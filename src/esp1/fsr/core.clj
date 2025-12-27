@@ -1,7 +1,30 @@
 (ns esp1.fsr.core
-  "Core functions used internally by fsr.
-   Can also be used to construct other mechanisms
-   that take advantage of fsr's namespace metadata and route resolution functionality."
+  "Core URI-to-file resolution for filesystem routing.
+
+   Maps request URIs to Clojure namespace files via filesystem traversal.
+   Zero external dependencies.
+
+   ## Namespace ↔ Filename Conventions
+
+   - Namespace `-` → filename `_` (e.g., `my-app` → `my_app`)
+   - Namespace `.` → directory `/` (e.g., `my-app.routes` → `my_app/routes/`)
+   - Example: `my-app.user.<id>` → `my_app/user/<id>.clj`
+
+   ## Path Parameters
+
+   - `<param>` matches segments without slashes (e.g., `<id>` matches `123`)
+   - `<<param>>` matches segments with slashes (e.g., `<<path>>` matches `foo/bar/baz`)
+
+   ## Key Functions
+
+   - `uri->file+params` - Resolve URI to file with path parameters
+   - `http-endpoint-fn` - Get handler for HTTP method with `:endpoint/type` delegation
+   - `ns-endpoint-meta` - Get namespace metadata with `:endpoint/ns` key
+
+   ## Performance
+
+   Resolution is O(URI segments) in filesystem calls, mitigated by caching
+   (see `esp1.fsr.cache`)."
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.string :as str]

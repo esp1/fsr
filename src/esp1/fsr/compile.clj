@@ -1,11 +1,35 @@
 (ns esp1.fsr.compile
-  "Production compilation for deployment.
+  "Build-time route compilation for production deployment.
 
-   Provides unified compilation of filesystem routes into production artifacts:
-   - GET routes → Static HTML files (compile-static-html)
-   - Non-GET routes → Compiled route data structures (compile-dynamic-routes)
+   ## Architecture
 
-   Main entry point: `publish` function for complete production builds."
+   ```
+   Build Time:  Filesystem → Discover routes → Classify → Compile → Write EDN
+   Runtime:     Request → Load EDN (once) → Match → Resolve handler → Execute
+   ```
+
+   ## What Gets Compiled
+
+   - **GET routes** → Static HTML files via `compile-static-html`
+   - **Non-GET routes** → Compiled route data via `compile-dynamic-routes`
+
+   ## Compiled Route Format
+
+   Routes are compiled into two categories for efficient runtime matching:
+
+   - **Static routes**: Fixed URIs (e.g., `/api/users`) → O(1) hash lookup
+   - **Pattern routes**: Parameterized URIs (e.g., `/thing/<id>`) → O(n) regex matching
+
+   ## Main Entry Point
+
+   Use `publish` for complete production builds:
+
+   ```clojure
+   (publish {:root-fs-path \"src/routes\"
+             :publish-dir \"dist\"})
+   ```
+
+   See `esp1.fsr.runtime` for loading and matching compiled routes."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [esp1.fsr.core :refer [clj->ns-sym
