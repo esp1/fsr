@@ -26,21 +26,3 @@ Filesystem-based routing for Clojure: URIs map to .clj files via directory struc
 
 7. **Route Caching** - Cache resolution results for performance
    [route-caching.md](route-caching.md)
-
-## Scope
-
-**In scope**:
-- Filesystem-to-URI routing with path parameters
-- Ring middleware integration
-- Static site generation and route compilation
-- Route caching
-
-**Out of scope**:
-- Auth, database, sessions, WebSockets
-- Templating engines (users provide via namespaces)
-- Client-side routing
-
-## Dependencies
-
-- **Core**: None (zero-dependency principle)
-- **Dev**: tools.namespace, Malli, Codox
