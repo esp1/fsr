@@ -2,7 +2,7 @@
 
 ## Development Environment
 
-[development.md](development.md) - Build commands, project structure, testing
+**[Development](development.md)** - Build commands, project structure, testing
 
 ## Stack
 
@@ -26,21 +26,17 @@
 
 ## Modules
 
-1. **core.clj** - URI→file resolution, path parameters, namespace metadata
-   [core-module.md](core-module.md)
+1. **[Core Module](core-module.md)** - URI→file resolution, path parameters, namespace metadata
 
 2. **ring.clj** - Ring middleware, hot-reload support
 
-3. **cache.clj** - Route caching for performance
-   [cache-module.md](cache-module.md)
+3. **[Cache Module](cache-module.md)** - Route caching for performance
 
 4. **static.clj** - Static site generation from GET endpoints
 
-5. **compile.clj** - Compile routes to EDN for production
-   [route-compilation.md](route-compilation.md)
+5. **[Route Compilation](route-compilation.md)** - Compile routes to EDN for production
 
 6. **runtime.clj** - Load/match compiled routes (zero filesystem access)
-   [route-compilation.md](route-compilation.md)
 
 ## Key Algorithms
 
@@ -62,5 +58,4 @@
 
 **Dev**: Use `wrap-fs-router`, enable hot-reload, routes resolved from filesystem
 
-**Prod**: Run `publish` → static HTML + `compiled-routes.edn`, use `wrap-compiled-routes`, zero filesystem access
-[route-compilation.md](route-compilation.md)
+**Prod**: Run `publish` → static HTML + `compiled-routes.edn`, use `wrap-compiled-routes`, zero filesystem access. See **[Route Compilation](route-compilation.md)**.

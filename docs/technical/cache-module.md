@@ -93,6 +93,6 @@ Memory: ~1KB per cached route. 1000 routes ≈ 1MB.
 
 ## Related
 
-- [Route Caching Spec](../functional/route-caching.md) - Requirements
-- [Core Module](core-module.md) - What is being cached
-- [Ring Middleware](../functional/ring-middleware.md) - When cache is used
+- **[Route Caching](../functional/route-caching.md)** - Requirements
+- **[Core Module](core-module.md)** - What is being cached
+- **[Ring Middleware](../functional/ring-middleware.md)** - When cache is used

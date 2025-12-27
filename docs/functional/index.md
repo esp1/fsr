@@ -6,23 +6,16 @@ Filesystem-based routing for Clojure: URIs map to .clj files via directory struc
 
 ## Features
 
-1. **URI to File Routing** - Maps URIs to .clj files via filesystem structure
-   [uri-to-file-routing.md](uri-to-file-routing.md)
+1. **[URI to File Routing](uri-to-file-routing.md)** - Maps URIs to .clj files via filesystem structure
 
-2. **Path Parameters** - Extract dynamic values: `<param>` (no slashes), `<<param>>` (with slashes)
-   [uri-to-file-routing.md](uri-to-file-routing.md)
+2. **[Path Parameters](uri-to-file-routing.md)** - Extract dynamic values: `<param>` (no slashes), `<<param>>` (with slashes)
 
-3. **Namespace Metadata** - Configure handlers via `:endpoint/http` and `:endpoint/type` metadata
-   [namespace-metadata.md](namespace-metadata.md)
+3. **[Namespace Metadata](namespace-metadata.md)** - Configure handlers via `:endpoint/http` and `:endpoint/type` metadata
 
-4. **Ring Middleware** - Integrates with Ring apps, supports hot-reload in dev
-   [ring-middleware.md](ring-middleware.md)
+4. **[Ring Middleware](ring-middleware.md)** - Integrates with Ring apps, supports hot-reload in dev
 
-5. **Static Site Generation** - Generate static HTML from GET endpoints
-   [static-site-generation.md](static-site-generation.md)
+5. **[Static Site Generation](static-site-generation.md)** - Generate static HTML from GET endpoints
 
-6. **Production Compilation** - Compile routes to static HTML + EDN for zero-filesystem runtime
-   [compiled-route-production.md](compiled-route-production.md)
+6. **[Production Compilation](compiled-route-production.md)** - Compile routes to static HTML + EDN for zero-filesystem runtime
 
-7. **Route Caching** - Cache resolution results for performance
-   [route-caching.md](route-caching.md)
+7. **[Route Caching](route-caching.md)** - Cache resolution results for performance

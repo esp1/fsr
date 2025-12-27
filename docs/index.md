@@ -57,5 +57,5 @@ Request to `/user/123` → `path-params` = `{"id" "123"}`
 
 ## Documentation
 
-- [Functional Requirements](functional/index.md) - Feature overview and use cases
-- [Technical Documentation](technical/index.md) - Architecture, implementation, development
+- **[Functional Requirements](functional/index.md)** - Feature overview and use cases
+- **[Technical Documentation](technical/index.md)** - Architecture, implementation, development

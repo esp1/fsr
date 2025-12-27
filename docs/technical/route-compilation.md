@@ -117,6 +117,6 @@ Follows `:endpoint/type` chains to find concrete handler:
 
 ## Related
 
-- [Production Route Compilation Spec](../functional/compiled-route-production.md) - Requirements
-- [Core Module](core-module.md) - Reused functions
-- [Static Site Generation Spec](../functional/static-site-generation.md) - GET route handling
+- **[Production Compilation](../functional/compiled-route-production.md)** - Requirements
+- **[Core Module](core-module.md)** - Reused functions
+- **[Static Site Generation](../functional/static-site-generation.md)** - GET route handling

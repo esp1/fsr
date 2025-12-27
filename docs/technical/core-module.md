@@ -39,6 +39,6 @@ Maps URIs to .clj files via filesystem traversal. Zero dependencies.
 
 ## Related
 
-- [../functional/uri-to-file-routing.md](../functional/uri-to-file-routing.md) - Requirements
-- [cache-module.md](cache-module.md) - Caching
-- [../functional/ring-middleware.md](../functional/ring-middleware.md) - Ring integration
+- **[URI to File Routing](../functional/uri-to-file-routing.md)** - Requirements
+- **[Cache Module](cache-module.md)** - Caching
+- **[Ring Middleware](../functional/ring-middleware.md)** - Ring integration

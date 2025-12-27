@@ -17,18 +17,18 @@ Zero filesystem scanning at runtime.
 
 ## Requirements
 
-**FR-001: Non-GET Compilation** - Compile POST/PUT/DELETE/PATCH/HEAD/OPTIONS routes to EDN lookup structures.
+**Non-GET Compilation** - Compile POST/PUT/DELETE/PATCH/HEAD/OPTIONS routes to EDN lookup structures.
 
-**FR-002: Route Types**
+**Route Types**
 - Static routes (`/api/users`) → hash map lookup (O(1))
 - Parameterized routes (`/thing/<id>`) → regex pattern matching
 - Mixed routes (`/api/users/<id>/posts`) → hybrid approach
 
-**FR-003: Metadata Preservation** - Handler vars, `:endpoint/ns`, `:endpoint/type` chains, and path parameter patterns preserved.
+**Metadata Preservation** - Handler vars, `:endpoint/ns`, `:endpoint/type` chains, and path parameter patterns preserved.
 
-**FR-004: Production Runtime** - `wrap-compiled-routes` middleware loads EDN at startup, matches routes without filesystem access.
+**Production Runtime** - `wrap-compiled-routes` middleware loads EDN at startup, matches routes without filesystem access.
 
-**FR-005: Publishing Integration** - `publish` function generates both static HTML and `compiled-routes.edn`.
+**Publishing Integration** - `publish` function generates both static HTML and `compiled-routes.edn`.
 
 ## Use Cases
 
@@ -55,7 +55,7 @@ Both are part of the production publishing workflow.
 
 ## Related
 
-- [static-site-generation.md](static-site-generation.md) - GET request rendering
-- [uri-to-file-routing.md](uri-to-file-routing.md) - Route resolution logic
-- [namespace-metadata.md](namespace-metadata.md) - Metadata in compiled routes
-- [../technical/route-compilation.md](../technical/route-compilation.md) - Implementation
+- **[Static Site Generation](static-site-generation.md)** - GET request rendering
+- **[URI to File Routing](uri-to-file-routing.md)** - Route resolution logic
+- **[Namespace Metadata](namespace-metadata.md)** - Metadata in compiled routes
+- **[Route Compilation](../technical/route-compilation.md)** - Implementation
