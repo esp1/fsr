@@ -31,9 +31,3 @@ Faster response times—route resolution happens once per unique URI, subsequent
 - First request: full resolution, store result
 - Concurrent first requests to same URI: both resolve, last write wins (both store same data)
 - Mode detection: `tools.namespace` on classpath but production desired → call `clear-route-cache!` manually
-
-## Related
-
-- **[URI to File Routing](uri-to-file-routing.md)** - What is cached
-- **[Ring Middleware](ring-middleware.md)** - When cache is used
-- **[Cache Module](../technical/cache-module.md)** - Implementation details

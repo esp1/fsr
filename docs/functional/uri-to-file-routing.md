@@ -34,9 +34,3 @@ Organize routes using filesystem: file location directly indicates handled URL.
 - Both `foo.clj` and `foo/index.clj` exist → `foo.clj` wins
 - Empty params not allowed: `/user//profile` doesn't match `/user/<id>/profile`
 - Case-sensitive matching
-
-## Related
-
-- **[Namespace Metadata](namespace-metadata.md)** - Handler resolution
-- **[Ring Middleware](ring-middleware.md)** - Ring integration
-- **[Route Caching](route-caching.md)** - Performance

@@ -48,8 +48,3 @@ Route configuration lives alongside code without external config files—idiomat
 3. Read `:endpoint/type` → namespace B
 4. Look up `:endpoint/http` in B
 5. Invoke B's handler with `:endpoint/ns` = A and A's metadata merged
-
-## Related
-
-- **[URI to File Routing](uri-to-file-routing.md)** - How namespaces are matched
-- **[Ring Middleware](ring-middleware.md)** - How handlers are invoked

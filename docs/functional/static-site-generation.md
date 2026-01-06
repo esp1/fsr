@@ -51,9 +51,3 @@ Build dynamic sites in dev, deploy static HTML to CDN/S3/GitHub Pages without Cl
 - Missing output directory → create automatically
 - Handler depends on session/cookies → may fail in static generation
 - Duplicate URIs → first match wins
-
-## Related
-
-- **[URI to File Routing](uri-to-file-routing.md)** - Route resolution
-- **[Namespace Metadata](namespace-metadata.md)** - Handler configuration
-- **[Production Compilation](compiled-route-production.md)** - Non-GET route compilation

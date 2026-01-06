@@ -37,9 +37,3 @@ test/
   esp1/fsr/     # Unit and integration tests
   foo/, bar/    # Example route structures
 ```
-
-## Related
-
-- **[Core Module](core-module.md)** - Main routing implementation
-- **[Cache Module](cache-module.md)** - Caching implementation
-- **[Route Compilation](route-compilation.md)** - Production compilation

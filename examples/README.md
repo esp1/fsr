@@ -214,6 +214,5 @@ clojure -M:dev -e "
 
 ## Further Reading
 
-- [Production Route Compilation Spec](../docs/spec/compiled-route-production.md)
-- [Route Compilation Technical Details](../docs/tech/route-compilation.md)
-- [Static Site Generation](../docs/spec/static-site-generation.md)
+- **[Production Route Compilation](../docs/functional/compiled-route-production.md)** - Requirements spec
+- **[Static Site Generation](../docs/functional/static-site-generation.md)** - GET route rendering

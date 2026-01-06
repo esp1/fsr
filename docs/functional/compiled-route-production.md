@@ -52,10 +52,3 @@ Zero filesystem scanning at runtime.
 | Handler execution | At build time | At request time |
 
 Both are part of the production publishing workflow.
-
-## Related
-
-- **[Static Site Generation](static-site-generation.md)** - GET request rendering
-- **[URI to File Routing](uri-to-file-routing.md)** - Route resolution logic
-- **[Namespace Metadata](namespace-metadata.md)** - Metadata in compiled routes
-- **[Route Compilation](../technical/route-compilation.md)** - Implementation

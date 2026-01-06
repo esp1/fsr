@@ -59,9 +59,3 @@ Place fsr:
 - Handler throws → propagates to Ring error handling
 - Invalid root path → error on initialization
 - Missing `tools.namespace` → hot-reload disabled silently
-
-## Related
-
-- **[URI to File Routing](uri-to-file-routing.md)** - Route resolution
-- **[Namespace Metadata](namespace-metadata.md)** - Handler configuration
-- **[Route Caching](route-caching.md)** - Performance optimization
